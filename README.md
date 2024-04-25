@@ -19,13 +19,13 @@ A good documentation is also available [here](https://www.raspberrypi.com/docume
 ---
 
 ## [blink_with_pcf8574.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/blink_with_pcf8574.py)  
-you need more GPIO-Pins, just use some PCF8574.  
+you need more GPIO-Pins, just use some [PCF8574](https://amzn.to/3UzPqCc).  
 
 ## [blink_with_ws2812.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/blink_with_ws2812.py)  
-need more fun with LEDs? Get some WS2812 light stripes or modules.  
+need more fun with LEDs? Get some [WS2812 light stripes](https://amzn.to/49YVDfr) or [modules](https://amzn.to/3vZMN3t).  
 
 ## [distance_with_hc-sr04.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/distance_with_hc-sr04.py)  
-measure real world distance with the help of the HC-SR04 hypersonic module.  
+measure real world distance with the help of the [HC-SR04 hypersonic module](https://amzn.to/4bfb30p).  
 
 ## [interactive_blink.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/interactive_blink.py)  
 accepts text input (e.g. via [Thonny](https://thonny.org/)) in two different formats ```Pin,Status``` or ```Pin,On-Time,Off-Time``` and allows pins to be switched on and off (or flashing the LED (pin 25)).  
@@ -34,7 +34,7 @@ accepts text input (e.g. via [Thonny](https://thonny.org/)) in two different for
 expects text input and causes the LED on the Raspberry Pi Pico to output this text as Morse code.  
 
 ## [read_rfid_with_rc552.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/read_rfid_with_rc552.py)  
-read RFID cards with the rc522.  
+read RFID cards with the [rc522](https://amzn.to/3xKmvm3).  
 
 ## [weigh_with_hx711.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/weigh_with_hx711.py)  
 uses a [load cell and the HX711](https://amzn.to/4b3HnTE)-24bit A/D converter to measure a weight.  
