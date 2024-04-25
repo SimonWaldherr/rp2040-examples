@@ -21,6 +21,9 @@ A good documentation is also available [here](https://www.raspberrypi.com/docume
 ## [blink_with_pcf8574.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/blink_with_pcf8574.py)  
 you need more GPIO-Pins, just use some PCF8574.  
 
+## [blink_with_ws2812.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/blink_with_ws2812.py)  
+need more fun with LEDs? Get some WS2812 light stripes or modules.  
+
 ## [distance_with_hc-sr04.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/distance_with_hc-sr04.py)  
 measure real world distance with the help of the HC-SR04 hypersonic module.  
 
