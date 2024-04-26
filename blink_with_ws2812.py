@@ -34,8 +34,7 @@ def hsb_to_rgb(h, s, b):
     if s == 0:
         return int(b * 255), int(b * 255), int(b * 255)
 
-    while h >= 360:
-        h -= 360
+    h = h % 360
 
     h = h / 60
     i = int(h)
@@ -88,7 +87,7 @@ if __name__ == "__main__":
     
     # Erzeuge einen Lauflichteffekt, bei dem die nachfolgenden vier LEDs nachleuchten
     background = (15, 15, 15)  # Hintergrund
-    cycles = 200
+    cycles = 20000
     trail_length = 4  # Länge des Nachleuchtens
     
     

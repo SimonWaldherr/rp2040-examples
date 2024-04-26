@@ -1,5 +1,6 @@
 # rp2040-examples
-Examples for [Raspberry Pi Pico](https://www.raspberrypi.com/products/raspberry-pi-pico/) (RP2040 MCU based SBCs)
+Examples for [Raspberry Pi Pico](https://www.raspberrypi.com/products/raspberry-pi-pico/) (RP2040 MCU based SBCs)  
+If you're looking for my Raspberry Pi Golang examples, you will find them [here](https://github.com/SimonWaldherr/rpi-examples).  
 
 ---
 
@@ -15,6 +16,7 @@ You can get the very cheap Raspberry Pi Pico from many retailers:
 ---
 
 A good documentation is also available [here](https://www.raspberrypi.com/documentation/microcontrollers/raspberry-pi-pico.html).  
+I also recommend this great [Raspberry Pi Pico Pinout](https://pico.pinout.xyz/)-page.  
 
 ---
 
@@ -32,6 +34,9 @@ accepts text input (e.g. via [Thonny](https://thonny.org/)) in two different for
 
 ## [morse_blink.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/morse_blink.py)  
 expects text input and causes the LED on the Raspberry Pi Pico to output this text as Morse code.  
+
+## [pwm_with_pca9685.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/pwm_with_pca9685.py)  
+control up to 16 servo motors with only 2 pins from your pico and the magical [PCA9685](https://amzn.to/3UemVsB).  
 
 ## [read_rfid_with_rc552.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/read_rfid_with_rc552.py)  
 read RFID cards with the [rc522](https://amzn.to/3xKmvm3).  
