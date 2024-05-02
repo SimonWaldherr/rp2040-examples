@@ -38,7 +38,7 @@ expects text input and causes the LED on the Raspberry Pi Pico to output this te
 ## [pwm_with_pca9685.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/pwm_with_pca9685.py)  
 control up to 16 servo motors with only 2 pins from your pico and the magical [PCA9685](https://amzn.to/3UemVsB).  
 
-## [read_rfid_with_rc552.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/read_rfid_with_rc552.py)  
+## [read_rfid_with_rc522.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/read_rfid_with_rc522.py)  
 read RFID cards with the [rc522](https://amzn.to/3xKmvm3).  
 
 ## [weigh_with_hx711.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/weigh_with_hx711.py)  
