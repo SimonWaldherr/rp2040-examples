@@ -29,6 +29,9 @@ need more fun with LEDs? Get some [WS2812 light stripes](https://amzn.to/49YVDfr
 ## [distance_with_hc-sr04.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/distance_with_hc-sr04.py)  
 measure real world distance with the help of the [HC-SR04 hypersonic module](https://amzn.to/4bfb30p).  
 
+## [info.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/info.py)  
+show information about your Pi.  
+
 ## [interactive_blink.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/interactive_blink.py)  
 accepts text input (e.g. via [Thonny](https://thonny.org/)) in two different formats ```Pin,Status``` or ```Pin,On-Time,Off-Time``` and allows pins to be switched on and off (or flashing the LED (pin 25)).  
 
@@ -41,5 +44,11 @@ control up to 16 servo motors with only 2 pins from your pico and the magical [P
 ## [read_rfid_with_rc522.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/read_rfid_with_rc522.py)  
 read RFID cards with the [rc522](https://amzn.to/3xKmvm3).  
 
+## [snake_on_hub75.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/snake_on_hub75.py)  
+show a funny snake animation on a [hub75 LED-Matrix](https://amzn.to/4bbOwSm) with an [Pimoroni Interstate 75 W](https://shop.pimoroni.com/products/interstate-75-w?variant=40453881299027).  
+
 ## [weigh_with_hx711.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/weigh_with_hx711.py)  
 uses a [load cell and the HX711](https://amzn.to/4b3HnTE)-24bit A/D converter to measure a weight.  
+
+## [wlan.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/wlan.py)  
+connect to your wifi and read json data from the internet.  
