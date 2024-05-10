@@ -3,6 +3,7 @@ import machine
 import network
 import sys
 import gc
+import time
 
 def system_info():
     print("Systeminformationen und Status:")
@@ -13,6 +14,10 @@ def system_info():
 
     # CPU-Informationen
     print("CPU: {}, Frequenz: {} MHz".format(os.uname().machine, machine.freq() // 1000000))
+
+    # System-Uptime
+    uptime = time.ticks_ms() // 1000  # Uptime in Sekunden
+    print("System-Uptime: {} Sekunden".format(uptime))
 
     # Speicherinformationen
     gc.collect()  # Bereinigt den nicht verwendeten Speicher
@@ -28,6 +33,7 @@ def system_info():
         print("Subnetzmaske:", wlan.ifconfig()[1])
         print("Gateway:", wlan.ifconfig()[2])
         print("DNS:", wlan.ifconfig()[3])
+        print("Signalstärke:", wlan.status('rssi'), "dBm")
     else:
         print("WLAN nicht verbunden")
 

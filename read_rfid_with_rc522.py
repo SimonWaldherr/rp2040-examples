@@ -200,7 +200,7 @@ class RC522:
 
 
 if __name__ == "__main__":
-    reader = RC522(spi_id=0, sck=6, miso=4, mosi=7, cs=5, rst=22)
+    reader = RC522(spi_id=0, sck=2, miso=4, mosi=3, cs=1, rst=0)
     last_card_id = None
     i = 0
     print("scanning ...\n")
@@ -218,4 +218,3 @@ if __name__ == "__main__":
         i = i+1
         if i > 1000:
             last_card_id = None
-
