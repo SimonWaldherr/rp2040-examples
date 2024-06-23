@@ -1,0 +1,307 @@
+import hub75
+import random
+import time
+import machine
+from machine import ADC
+
+# Initialize ADC for joystick
+adc0 = ADC(0)
+adc1 = ADC(1)
+adc2 = ADC(2)
+
+rtc = machine.RTC()
+
+# Constants
+HEIGHT = 64
+WIDTH = 64
+
+# Initialize the display
+display = hub75.Hub75(WIDTH, HEIGHT)
+
+char_dict = {
+    '0': ["01110", "10001", "10001", "10001", "01110"],
+    '1': ["00100", "01100", "00100", "00100", "01110"],
+    '2': ["11110", "00001", "01110", "10000", "11111"],
+    '3': ["11110", "00001", "00110", "00001", "11110"],
+    '4': ["10000", "10010", "10010", "11111", "00010"],
+    '5': ["11111", "10000", "11110", "00001", "11110"],
+    '6': ["01110", "10000", "11110", "10001", "01110"],
+    '7': ["11111", "00010", "00100", "01000", "10000"],
+    '8': ["01110", "10001", "01110", "10001", "01110"],
+    '9': ["01110", "10001", "01111", "00001", "01110"],
+    ' ': ["00000", "00000", "00000", "00000", "00000"],
+    '.': ["00000", "00000", "00000", "00000", "00001"],
+    ':': ["00000", "00100", "00000", "00100", "00000"]
+}
+
+def rect(x1, y1, x2, y2, r, g, b):
+    for x in range(min(x1, x2), max(x1, x2) + 1):
+        for y in range(min(y1, y2), max(y1, y2) + 1):
+            display.set_pixel(x, y, r, g, b)
+
+def draw_char(x, y, char, r, g, b):
+    if char in char_dict:
+        matrix = char_dict[char]
+        for row in range(5):
+            for col in range(5):
+                if matrix[row][col] == '1':
+                    display.set_pixel(x + col, y + row, r, g, b)
+
+def draw_text(x, y, text, r, g, b):
+    offset_x = x
+    for char in text:
+        draw_char(offset_x, y, char, r, g, b)
+        offset_x += 6
+
+def hsb_to_rgb(hue, saturation, brightness):
+    hue_normalized = (hue % 360) / 60
+    hue_index = int(hue_normalized)
+    hue_fraction = hue_normalized - hue_index
+
+    value1 = brightness * (1 - saturation)
+    value2 = brightness * (1 - saturation * hue_fraction)
+    value3 = brightness * (1 - saturation * (1 - hue_fraction))
+
+    red, green, blue = [
+        (brightness, value3, value1),
+        (value2, brightness, value1),
+        (value1, brightness, value3),
+        (value1, value2, brightness),
+        (value3, value1, brightness),
+        (brightness, value1, value2)
+    ][hue_index]
+
+    return int(red * 255), int(green * 255), int(blue * 255)
+
+score = 0
+snake = [(32, 32)]
+snake_length = 3
+snake_direction = 'UP'
+text = ""
+
+def restart_game():
+    global snake, snake_length, snake_direction, score, green_targets
+    score = 0
+    snake = [(32, 32)]
+    snake_length = 3
+    snake_direction = 'UP'
+    target = random_target()
+    green_targets = []
+    display.clear()
+    place_target()
+    print("Game restarted")
+
+def random_target():
+    return (random.randint(1, WIDTH-2), random.randint(1, HEIGHT-8))
+
+target = random_target()
+green_targets = []
+
+def place_target():
+    global target
+    target = random_target()
+    display.set_pixel(target[0], target[1], 255, 0, 0)  # Red target
+
+def place_green_target():
+    x, y = random.randint(1, WIDTH-2), random.randint(1, HEIGHT-8)
+    green_targets.append((x, y, 256))
+    display.set_pixel(x, y, 0, 255, 0)  # Green target
+
+def update_green_targets():
+    global green_targets
+    new_green_targets = []
+    for x, y, lifespan in green_targets:
+        if lifespan > 1:
+            new_green_targets.append((x, y, lifespan - 1))
+        else:
+            display.set_pixel(x, y, 0, 0, 0)  # Clear green target from display
+    green_targets = new_green_targets
+
+def find_nearest_target(head_x, head_y, green_targets, red_target):
+    def manhattan_distance(x1, y1, x2, y2):
+        return abs(x1 - x2) + abs(y1 - y2)
+
+    min_distance_green = float('inf')
+    nearest_green_target = None
+
+    for x, y, _ in green_targets:
+        distance = manhattan_distance(head_x, head_y, x, y)
+        if distance < min_distance_green:
+            min_distance_green = distance
+            nearest_green_target = (x, y)
+
+    distance_red = manhattan_distance(head_x, head_y, red_target[0], red_target[1])
+
+    if nearest_green_target and min_distance_green <= distance_red * 1.5:
+        return nearest_green_target
+    else:
+        return red_target
+
+def update_direction(snake, snake_direction, green_targets, target, joystick_dir):
+    head_x, head_y = snake[0]
+    target_x, target_y = find_nearest_target(head_x, head_y, green_targets, target)
+    
+    opposite_directions = {'UP': 'DOWN', 'DOWN': 'UP', 'LEFT': 'RIGHT', 'RIGHT': 'LEFT'}
+
+    new_direction = snake_direction  # Default to current direction
+
+    if joystick_dir:
+        new_direction = joystick_dir
+    else:
+        if head_x == target_x:
+            if head_y < target_y and snake_direction != 'UP':
+                new_direction = 'DOWN'
+            elif head_y > target_y and snake_direction != 'DOWN':
+                new_direction = 'UP'
+        elif head_y == target_y:
+            if head_x < target_x and snake_direction != 'LEFT':
+                new_direction = 'RIGHT'
+            elif head_x > target_x and snake_direction != 'RIGHT':
+                new_direction = 'LEFT'
+        else:
+            if abs(head_x - target_x) < abs(head_y - target_y):
+                if head_x < target_x and snake_direction != 'LEFT':
+                    new_direction = 'RIGHT'
+                elif head_x > target_x and snake_direction != 'RIGHT':
+                    new_direction = 'LEFT'
+            else:
+                if head_y < target_y and snake_direction != 'UP':
+                    new_direction = 'DOWN'
+                elif head_y > target_y and snake_direction != 'DOWN':
+                    new_direction = 'UP'
+
+    if new_direction == opposite_directions[snake_direction]:
+        new_direction = snake_direction
+    
+    return new_direction
+
+def check_self_collision():
+    global snake, snake_direction
+    head_x, head_y = snake[0]
+    body = snake[1:]
+    potential_moves = {
+        'UP': (head_x, head_y - 1),
+        'DOWN': (head_x, head_y + 1),
+        'LEFT': (head_x - 1, head_y),
+        'RIGHT': (head_x + 1, head_y)
+    }
+    safe_moves = {dir: pos for dir, pos in potential_moves.items() if pos not in body}
+    if potential_moves[snake_direction] not in safe_moves.values():
+        if safe_moves:
+            snake_direction = random.choice(list(safe_moves.keys()))
+        else:
+            restart_game()
+
+def update_snake_position():
+    global snake, snake_length, snake_direction
+    head_x, head_y = snake[0]
+    if snake_direction == 'UP':
+        head_y -= 1
+    elif snake_direction == 'DOWN':
+        head_y += 1
+    elif snake_direction == 'LEFT':
+        head_x -= 1
+    elif snake_direction == 'RIGHT':
+        head_x += 1
+
+    head_x %= WIDTH
+    head_y %= HEIGHT
+
+    snake.insert(0, (head_x, head_y))
+    if len(snake) > snake_length:
+        tail = snake.pop()
+        display.set_pixel(tail[0], tail[1], 0, 0, 0)
+
+def check_target_collision():
+    global snake, snake_length, target, score
+    head_x, head_y = snake[0]
+    if (head_x, head_y) == target:
+        snake_length += 2
+        place_target()
+        score += 1
+
+def check_green_target_collision():
+    global snake, snake_length, green_targets
+    head_x, head_y = snake[0]
+    for x, y, lifespan in green_targets:
+        if (head_x, head_y) == (x, y):
+            snake_length = max(snake_length // 2, 2)
+            green_targets.remove((x, y, lifespan))
+            display.set_pixel(x, y, 0, 0, 0)
+
+def draw_snake():
+    hue = 0
+    for idx, (x, y) in enumerate(snake[:snake_length]):
+        hue = (hue + 5) % 360
+        r, g, b = hsb_to_rgb(hue, 1, 1)
+        display.set_pixel(x, y, r, g, b)
+    for idx in range(snake_length, len(snake)):
+        x, y = snake[idx]
+        display.set_pixel(x, y, 0, 0, 0)
+
+def display_score_and_time(score):
+    global text
+    year, month, day, wd, hour, minute, second, _ = rtc.datetime()
+    time_str = "{:02}:{:02}".format(hour, minute)
+    score_str = str(score)
+    time_x = WIDTH - (len(time_str) * 6)
+    time_y = HEIGHT - 6
+    score_x = 1
+    score_y = HEIGHT - 6
+    if text != score_str + " " + time_str:
+        text = score_str + " " + time_str
+        rect(score_x, score_y, WIDTH, score_y+5, 0, 0, 0)
+    draw_text(score_x, score_y, score_str, 255, 255, 255)
+    draw_text(time_x, time_y, time_str, 255, 255, 255)
+
+def get_joystick_direction():
+    read0 = adc0.read_u16()
+    read1 = adc1.read_u16()
+    read2 = adc2.read_u16()
+
+    valueX = read0 - 32768  # Adjusted to be centered at 0
+    valueY = read1 - 32768  # Adjusted to be centered at 0
+    
+    #print(abs(valueX),abs(valueY))
+
+    if abs(valueX) > abs(valueY):
+        if valueX > 10000:
+            return 'RIGHT'
+        elif valueX < -10000:
+            return 'LEFT'
+    else:
+        if valueY > 10000:
+            return 'DOWN'
+        elif valueY < -10000:
+            return 'UP'
+    
+    return None
+
+step_counter = 0
+step_counter2 = 0
+
+display.start()
+place_target()
+
+while True:
+    step_counter += 1
+    step_counter2 += 1
+    
+    if step_counter2 % 1024 == 0:
+        place_green_target()
+    update_green_targets()
+
+    joystick_dir = get_joystick_direction()
+    
+    if joystick_dir != None:
+        snake_direction = joystick_dir
+
+    check_self_collision()
+    update_snake_position()
+    check_target_collision()
+    check_green_target_collision()
+    draw_snake()
+    display_score_and_time(score)
+
+    time.sleep(max(0.03, (0.09-max(0.01, snake_length/300))))
+
