@@ -48,17 +48,14 @@ def draw_text(x, y, text, r, g, b):
         offset_x += 6
 
 def hsb_to_rgb(hue, saturation, brightness):
-    # Normalisiere den Farbton auf einen Bereich von 0 bis 6
     hue_normalized = (hue % 360) / 60
     hue_index = int(hue_normalized)
     hue_fraction = hue_normalized - hue_index
 
-    # Berechne die RGB-Intermediärwerte auf Basis der Sättigung und Helligkeit
     value1 = brightness * (1 - saturation)
     value2 = brightness * (1 - saturation * hue_fraction)
     value3 = brightness * (1 - saturation * (1 - hue_fraction))
 
-    # Zuweisung der RGB-Werte basierend auf dem Bereich, in dem der Farbton liegt
     red, green, blue = [
         (brightness, value3, value1),
         (value2, brightness, value1),
@@ -68,9 +65,7 @@ def hsb_to_rgb(hue, saturation, brightness):
         (brightness, value1, value2)
     ][hue_index]
 
-    # Umwandlung von RGB-Werten von 0-1 Skala zu 0-255 Skala und Rückgabe als Ganzzahlen
     return int(red * 255), int(green * 255), int(blue * 255)
-
 
 score = 0
 snake = [(32, 32)]
@@ -91,9 +86,7 @@ def restart_game():
     print("Game restarted")
 
 def random_target():
-    global target
-    target = (random.randint(1, WIDTH-2), random.randint(1, HEIGHT-8))
-    return target
+    return (random.randint(1, WIDTH-2), random.randint(1, HEIGHT-8))
 
 target = random_target()
 green_targets = []
@@ -105,11 +98,11 @@ def place_target():
 
 def place_green_target():
     x, y = random.randint(1, WIDTH-2), random.randint(1, HEIGHT-8)
-    green_targets.append((x, y, 256)) 
+    green_targets.append((x, y, 256))
     display.set_pixel(x, y, 0, 255, 0)  # Green target
 
 def update_green_targets():
-    global green_targets, snake_length
+    global green_targets
     new_green_targets = []
     for x, y, lifespan in green_targets:
         if lifespan > 1:
@@ -118,48 +111,63 @@ def update_green_targets():
             display.set_pixel(x, y, 0, 0, 0)  # Clear green target from display
     green_targets = new_green_targets
 
-def find_nearest_target(head_x, head_y, green_targets, fallback_target):
-    min_distance = float('inf')
-    nearest_target = fallback_target
+def find_nearest_target(head_x, head_y, green_targets, red_target):
+    def manhattan_distance(x1, y1, x2, y2):
+        return abs(x1 - x2) + abs(y1 - y2)
+
+    min_distance_green = float('inf')
+    nearest_green_target = None
+
     for x, y, _ in green_targets:
-        distance = abs(head_x - x) + abs(head_y - y)
-        if distance < min_distance:
-            nearest_target = (x, y)
-            min_distance = distance
-    return nearest_target
+        distance = manhattan_distance(head_x, head_y, x, y)
+        if distance < min_distance_green:
+            min_distance_green = distance
+            nearest_green_target = (x, y)
+
+    distance_red = manhattan_distance(head_x, head_y, red_target[0], red_target[1])
+
+    if nearest_green_target and min_distance_green <= distance_red * 1.5:
+        return nearest_green_target
+    else:
+        return red_target
 
 def update_direction(snake, snake_direction, green_targets, target):
     head_x, head_y = snake[0]
     target_x, target_y = find_nearest_target(head_x, head_y, green_targets, target)
+    
+    opposite_directions = {'UP': 'DOWN', 'DOWN': 'UP', 'LEFT': 'RIGHT', 'RIGHT': 'LEFT'}
 
-    # Priorisiere die Achse für die Bewegung
+    new_direction = snake_direction  # Default to current direction
+
     if head_x == target_x:
         if head_y < target_y and snake_direction != 'UP':
-            snake_direction = 'DOWN'
+            new_direction = 'DOWN'
         elif head_y > target_y and snake_direction != 'DOWN':
-            snake_direction = 'UP'
+            new_direction = 'UP'
     elif head_y == target_y:
         if head_x < target_x and snake_direction != 'LEFT':
-            snake_direction = 'RIGHT'
+            new_direction = 'RIGHT'
         elif head_x > target_x and snake_direction != 'RIGHT':
-            snake_direction = 'LEFT'
+            new_direction = 'LEFT'
     else:
         if abs(head_x - target_x) < abs(head_y - target_y):
             if head_x < target_x and snake_direction != 'LEFT':
-                snake_direction = 'RIGHT'
+                new_direction = 'RIGHT'
             elif head_x > target_x and snake_direction != 'RIGHT':
-                snake_direction = 'LEFT'
+                new_direction = 'LEFT'
         else:
             if head_y < target_y and snake_direction != 'UP':
-                snake_direction = 'DOWN'
+                new_direction = 'DOWN'
             elif head_y > target_y and snake_direction != 'DOWN':
-                snake_direction = 'UP'
+                new_direction = 'UP'
 
-    return snake_direction
-
+    if new_direction == opposite_directions[snake_direction]:
+        new_direction = snake_direction
+    
+    return new_direction
 
 def check_self_collision():
-    global snake, snake_direction, snake_length
+    global snake, snake_direction
     head_x, head_y = snake[0]
     body = snake[1:]
     potential_moves = {
@@ -174,6 +182,53 @@ def check_self_collision():
             snake_direction = random.choice(list(safe_moves.keys()))
         else:
             restart_game()
+
+def update_snake_position():
+    global snake, snake_length, snake_direction
+    head_x, head_y = snake[0]
+    if snake_direction == 'UP':
+        head_y -= 1
+    elif snake_direction == 'DOWN':
+        head_y += 1
+    elif snake_direction == 'LEFT':
+        head_x -= 1
+    elif snake_direction == 'RIGHT':
+        head_x += 1
+
+    head_x %= WIDTH
+    head_y %= HEIGHT
+
+    snake.insert(0, (head_x, head_y))
+    if len(snake) > snake_length:
+        tail = snake.pop()
+        display.set_pixel(tail[0], tail[1], 0, 0, 0)
+
+def check_target_collision():
+    global snake, snake_length, target, score
+    head_x, head_y = snake[0]
+    if (head_x, head_y) == target:
+        snake_length += 2
+        place_target()
+        score += 1
+
+def check_green_target_collision():
+    global snake, snake_length, green_targets
+    head_x, head_y = snake[0]
+    for x, y, lifespan in green_targets:
+        if (head_x, head_y) == (x, y):
+            snake_length = max(snake_length // 2, 2)
+            green_targets.remove((x, y, lifespan))
+            display.set_pixel(x, y, 0, 0, 0)
+
+def draw_snake():
+    hue = 0
+    for idx, (x, y) in enumerate(snake[:snake_length]):
+        hue = (hue + 5) % 360
+        r, g, b = hsb_to_rgb(hue, 1, 1)
+        display.set_pixel(x, y, r, g, b)
+    for idx in range(snake_length, len(snake)):
+        x, y = snake[idx]
+        display.set_pixel(x, y, 0, 0, 0)
 
 def display_score_and_time(score):
     global text
@@ -195,6 +250,7 @@ step_counter2 = 0
 
 display.start()
 place_target()
+
 while True:
     step_counter += 1
     step_counter2 += 1
@@ -211,50 +267,11 @@ while True:
     elif snake[0][0] == target[0] or snake[0][1] == target[1] or snake[0][0] < 4 or snake[0][0] > WIDTH-4 or snake[0][1] < 4 or snake[0][1] > HEIGHT-4:
         snake_direction = update_direction(snake, snake_direction, green_targets, target)
 
-
     check_self_collision()
-
-    head_x, head_y = snake[0]
-    if snake_direction == 'UP':
-        head_y -= 1
-    elif snake_direction == 'DOWN':
-        head_y += 1
-    elif snake_direction == 'LEFT':
-        head_x -= 1
-    elif snake_direction == 'RIGHT':
-        head_x += 1
-
-    head_x %= WIDTH
-    head_y %= HEIGHT
-
-    snake.insert(0, (head_x, head_y))
-    if len(snake) > snake_length:
-        tail = snake.pop()
-        display.set_pixel(tail[0], tail[1], 0, 0, 0)
-
-    if (head_x, head_y) == target:
-        snake_length += 2
-        place_target()
-        score += 1
-        step_counter = 4
-
-    for x, y, lifespan in green_targets:
-        if (head_x, head_y) == (x, y):
-            snake_length = max(snake_length // 2, 2)  # Halve the snake length, minimum length 2
-            green_targets.remove((x, y, lifespan))
-            display.set_pixel(x, y, 0, 0, 0)  # Clear the green target
-
-    hue = 0
-    
-    for idx, (x, y) in enumerate(snake[:snake_length]):
-        hue = (hue + 5) % 360  # Update hue for rainbow effect
-        r, g, b = hsb_to_rgb(hue, 1, 1)
-        display.set_pixel(x, y, r, g, b)
-
-    for idx in range(snake_length, len(snake)):
-        x, y = snake[idx]
-        display.set_pixel(x, y, 0, 0, 0) 
-
+    update_snake_position()
+    check_target_collision()
+    check_green_target_collision()
+    draw_snake()
     display_score_and_time(score)
 
     time.sleep(max(0.03, (0.09-max(0.01, snake_length/300))))
