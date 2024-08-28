@@ -116,16 +116,15 @@ def joystick_test():
         time.sleep(0.1)
     print("Joystick test completed")
 
-def main_game_loop():
+def main_simon_game_loop():
     global simon_sequence, user_sequence
-
+    
     start_game()
-    #joystick_test()
     while True:
         simon_sequence.append(random.randint(0, 3))
         play_sequence()
         user_sequence = []
-
+        
         for _ in range(len(simon_sequence)):
             joystick_dir = get_user_input()
             selected_color = translate_joystick_to_color(joystick_dir)
@@ -135,14 +134,15 @@ def main_game_loop():
             else:
                 print("Invalid input")
                 break
-
+            
         if not check_user_sequence():
             print("Game Over")
             start_game()
-
+            
         time.sleep(1)
+        
+if __name__ == '__main__':
+    display.start()
+    main_simon_game_loop()
 
-display.start()
-
-main_game_loop()
-
+    
