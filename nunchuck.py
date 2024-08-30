@@ -3,45 +3,45 @@ import time
 
 class Nunchuck:
     """
-    Eine Klasse zur Handhabung eines Wii Nunchuk Controllers über I2C.
-    Bietet Funktionen zum Abrufen von Joystick-, Beschleunigungs- und Tastenwerten.
-    Ein Polling-Mechanismus ermöglicht regelmäßige Aktualisierungen der Sensorwerte.
+    A class for handling a Wii Nunchuk controller via I2C.
+    Provides functions to retrieve joystick, acceleration, and button values.
+    A polling mechanism allows for regular updates of sensor values.
     """
 
     def __init__(self, i2c, poll=True, poll_interval=50):
         """
-        Initialisiert den Nunchuk-Controller.
+        Initializes the Nunchuk controller.
         
-        :param i2c: I2C-Objekt zur Kommunikation mit dem Controller.
-        :param poll: Aktiviert oder deaktiviert Polling (Standard: True).
-        :param poll_interval: Polling-Intervall in Millisekunden (Standard: 50ms).
+        :param i2c: I2C object for communication with the controller.
+        :param poll: Enables or disables polling (default: True).
+        :param poll_interval: Polling interval in milliseconds (default: 50ms).
         """
         self.i2c = i2c
         self.address = 0x52
-        self.buffer = bytearray(6)  # Puffer zur Speicherung der Sensordaten
+        self.buffer = bytearray(6)  # Buffer for storing sensor data
 
-        # Initialisierungssequenz für den Nunchuk
+        # Initialization sequence for the Nunchuk
         self.i2c.writeto(self.address, b'\xf0\x55')
         self.i2c.writeto(self.address, b'\xfb\x00')
 
-        # Zeitstempel der letzten Polling-Aktualisierung
+        # Timestamp of the last polling update
         self.last_poll = time.ticks_ms()
         
-        # Polling-Intervall in Millisekunden
+        # Polling interval in milliseconds
         self.polling_threshold = poll_interval if poll else -1
 
     def update(self):
         """
-        Fordert einen Sensor-Readout vom Controller an und speichert die
-        Daten im internen Puffer.
+        Requests a sensor readout from the controller and stores the
+        data in the internal buffer.
         """
         self.i2c.writeto(self.address, b'\x00')
         self.i2c.readfrom_into(self.address, self.buffer)
 
     def __poll(self):
         """
-        Überprüft, ob ein Polling erforderlich ist, und führt ggf. eine
-        Aktualisierung der Sensorwerte durch.
+        Checks if polling is necessary and performs a
+        sensor value update if required.
         """
         if self.polling_threshold > 0 and time.ticks_diff(time.ticks_ms(), self.last_poll) > self.polling_threshold:
             self.update()
@@ -49,9 +49,9 @@ class Nunchuck:
 
     def accelerator(self):
         """
-        Gibt die aktuellen Werte des Beschleunigungssensors zurück.
+        Returns the current values of the acceleration sensor.
         
-        :return: Ein Tuple mit den Werten für die Achsen X, Y und Z.
+        :return: A tuple with the values for the X, Y, and Z axes.
         """
         self.__poll()
         return (
@@ -62,105 +62,105 @@ class Nunchuck:
 
     def buttons(self):
         """
-        Gibt den aktuellen Zustand der Tasten C und Z zurück.
+        Returns the current state of the C and Z buttons.
         
-        :return: Ein Tuple mit booleschen Werten für die Tasten C und Z (True = gedrückt).
+        :return: A tuple with boolean values for the C and Z buttons (True = pressed).
         """
         self.__poll()
         return (
-            not (self.buffer[5] & 0x02),  # C-Taste
-            not (self.buffer[5] & 0x01)   # Z-Taste
+            not (self.buffer[5] & 0x02),  # C button
+            not (self.buffer[5] & 0x01)   # Z button
         )
 
     def joystick(self):
         """
-        Gibt die aktuellen X- und Y-Werte des Joysticks zurück.
+        Returns the current X and Y values of the joystick.
         
-        :return: Ein Tuple mit den Werten für die X- und Y-Achse.
+        :return: A tuple with the values for the X and Y axes.
         """
         self.__poll()
         return (self.buffer[0], self.buffer[1])
 
     def joystick_left(self):
         """
-        Gibt True zurück, wenn der Joystick nach links geneigt ist.
+        Returns True if the joystick is tilted to the left.
         """
         self.__poll()
         return self.buffer[0] < 55
 
     def joystick_right(self):
         """
-        Gibt True zurück, wenn der Joystick nach rechts geneigt ist.
+        Returns True if the joystick is tilted to the right.
         """
         self.__poll()
         return self.buffer[0] > 200
 
     def joystick_up(self):
         """
-        Gibt True zurück, wenn der Joystick nach oben geneigt ist.
+        Returns True if the joystick is tilted upwards.
         """
         self.__poll()
         return self.buffer[1] > 200
 
     def joystick_down(self):
         """
-        Gibt True zurück, wenn der Joystick nach unten geneigt ist.
+        Returns True if the joystick is tilted downwards.
         """
         self.__poll()
         return self.buffer[1] < 55
 
     def joystick_center(self):
         """
-        Gibt True zurück, wenn der Joystick in der Mitte steht.
+        Returns True if the joystick is in the center position.
         """
         self.__poll()
         return 100 < self.buffer[0] < 155 and 100 < self.buffer[1] < 155
 
     def joystick_x(self):
         """
-        Gibt den normierten X-Wert des Joysticks zurück.
+        Returns the normalized X value of the joystick.
         
-        :return: X-Wert, normiert auf einen Bereich von etwa -34 bis 222.
+        :return: X value, normalized to a range of approximately -34 to 222.
         """
         self.__poll()
         return (self.buffer[0] >> 2) - 34
 
     def joystick_y(self):
         """
-        Gibt den normierten Y-Wert des Joysticks zurück.
+        Returns the normalized Y value of the joystick.
         
-        :return: Y-Wert, normiert auf einen Bereich von etwa -34 bis 222.
+        :return: Y value, normalized to a range of approximately -34 to 222.
         """
         self.__poll()
         return (self.buffer[1] >> 2) - 34
 
     def is_shaking(self):
         """
-        Prüft, ob der Nunchuk heftig geschüttelt wird, basierend auf den Beschleunigungswerten.
+        Checks if the Nunchuk is being shaken vigorously based on acceleration values.
         
-        :return: True, wenn die Beschleunigungswerte einen bestimmten Schwellenwert überschreiten.
+        :return: True if the acceleration values exceed a certain threshold.
         """
         x, y, z = self.accelerator()
-        return max(x, y, z) > 800  # Schwellenwert für Erkennung
+        return max(x, y, z) > 800  # Threshold for detection
 
     def button_combination(self):
         """
-        Prüft, ob beide Tasten gleichzeitig gedrückt sind.
+        Checks if both buttons are pressed simultaneously.
         
-        :return: True, wenn sowohl C als auch Z gedrückt sind.
+        :return: True if both C and Z buttons are pressed.
         """
         c, z = self.buttons()
         return c and z
 
 
 def main():
-    # Initialisierung des I2C-Busses
+    # Initialize the I2C bus
     i2c = machine.I2C(0, scl=machine.Pin(21), sda=machine.Pin(20), freq=100000)
     
-    # Erstellen des Nunchuck-Objekts
+    # Create the Nunchuck object
     nunchuk = Nunchuck(i2c, poll=True, poll_interval=100)
 
-    # Endlosschleife zur kontinuierlichen Abfrage und Ausgabe der Daten
+    # Infinite loop for continuously querying and displaying data
     while True:
         print("Joystick:", nunchuk.joystick())
         print("Accelerator:", nunchuk.accelerator())

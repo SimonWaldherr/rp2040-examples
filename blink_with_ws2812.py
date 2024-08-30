@@ -4,32 +4,32 @@ import rp2
 
 brightness = 0.3
 
-# Definition des PIO-Programms für die WS2812 LEDs
+# Definition of the PIO program for the WS2812 LEDs
 @rp2.asm_pio(
-    sideset_init=rp2.PIO.OUT_LOW,  # Initialzustand der Side-Set-Pins.
-    out_shiftdir=rp2.PIO.SHIFT_LEFT,  # Richtung, in der Daten aus dem Shift-Register geschoben werden.
-    autopull=True,  # Automatisches Nachladen des Shift-Registers aus dem FIFO (First In, First Out-Speicher).
-    pull_thresh=24  # Schwellenwert in Bits, bei dessen Erreichen automatisch Daten aus dem FIFO nachgeladen werden.
+    sideset_init=rp2.PIO.OUT_LOW,  # Initial state of the side-set pins.
+    out_shiftdir=rp2.PIO.SHIFT_LEFT,  # Direction in which data is shifted out of the shift register.
+    autopull=True,  # Automatic reloading of the shift register from the FIFO (First In, First Out memory).
+    pull_thresh=24  # Threshold in bits at which data is automatically reloaded from the FIFO.
 )
 def ws2812():
-    # Timing-Konstanten für die Bit-Übertragung
+    # Timing constants for bit transmission
     T1, T2, T3 = 2, 5, 3
     wrap_target()
     label("bitloop")
-    # Übertrage ein Bit, beginnend mit dem MSB; setze die Leitung auf Low und verzögere T3-1 Zyklen
+    # Transmit one bit, starting with the MSB; set the line to low and delay T3-1 cycles
     out(x, 1).side(0)[T3 - 1]
-    # Springe zu "do_zero", wenn das Bit 0 ist, und setze die Leitung auf High für T1-1 Zyklen
+    # Jump to "do_zero" if the bit is 0, and set the line to high for T1-1 cycles
     jmp(not_x, "do_zero").side(1)[T1 - 1]
-    # Setze die Leitung zurück auf High und wiederhole die Schleife für das nächste Bit
+    # Set the line back to high and repeat the loop for the next bit
     jmp("bitloop").side(1)[T2 - 1]
     label("do_zero")
-    # Setze die Leitung auf Low und verzögere für T2-1 Zyklen, um das Signal für eine 0 zu senden
+    # Set the line to low and delay for T2-1 cycles to send the signal for a 0
     nop().side(0)[T2 - 1]
     wrap()
 
 
 def hsb_to_rgb(h, s, b):
-    # Konvertiert einen HSB-Farbwert in einen RGB-Farbwert.
+    # Converts an HSB color value to an RGB color value.
 
     if s == 0:
         return int(b * 255), int(b * 255), int(b * 255)
@@ -60,47 +60,47 @@ def hsb_to_rgb(h, s, b):
         return b, p, q
 
 def update_pix(brightness_input=brightness):
-    # Skaliere die Farbwerte basierend auf der gewünschten Helligkeit
+    # Scale the color values based on the desired brightness
     dimmer_array = array.array("I", (int(((c >> 16) & 0xFF) * brightness_input) << 16 |
                                      int(((c >> 8) & 0xFF) * brightness_input) << 8 |
                                      int((c & 0xFF) * brightness_input) for c in pixel_array))
-    # Übertrage die skalierten Farbwerte an die LEDs
+    # Transmit the scaled color values to the LEDs
     state_mach.put(dimmer_array, 8)
     time.sleep_ms(10)
 
 def set_led(ii, color):
-    # Setze den Farbwert einer einzelnen LED
+    # Set the color value of a single LED
     pixel_array[ii] = (color[1] << 16) + (color[0] << 8) + color[2]
 
 
 if __name__ == "__main__":
-    # Anzahl der LEDs im Ring
+    # Number of LEDs in the ring
     led_count = 12
-    # GPIO-Pin-Nummer, an den die Datenleitung der LEDs angeschlossen ist
+    # GPIO pin number to which the data line of the LEDs is connected
     PIN_NUM = 0
     
-    # Erstellen und Aktivieren des StateMachine-Objekts für das PIO-Programm
+    # Create and activate the StateMachine object for the PIO program
     state_mach = rp2.StateMachine(0, ws2812, freq=8_000_000, sideset_base=Pin(PIN_NUM))
     state_mach.active(1)
-    # Array für die Farbwerte der LEDs
+    # Array for the color values of the LEDs
     pixel_array = array.array("I", [0] * led_count)
     
-    # Erzeuge einen Lauflichteffekt, bei dem die nachfolgenden vier LEDs nachleuchten
-    background = (15, 15, 15)  # Hintergrund
+    # Create a running light effect where the following four LEDs leave a trail
+    background = (15, 15, 15)  # Background
     cycles = 20000
-    trail_length = 4  # Länge des Nachleuchtens
+    trail_length = 4  # Length of the trail
     
     
     for ii in range(int(cycles * led_count) + 1):
-        # Haupt-LED
-        set_led(ii % led_count, hsb_to_rgb(ii * 9, 1, 0.8))  # Setzt jede LED auf eine unterschiedliche Farbe
-        # Nachleuchtende LEDs
+        # Main LED
+        set_led(ii % led_count, hsb_to_rgb(ii * 9, 1, 0.8))  # Sets each LED to a different color
+        # Trailing LEDs
         for j in range(trail_length):
             if (ii - j - 1) >= 0:
-                # Verringere die Helligkeit für jede nachfolgende LED
+                # Decrease brightness for each following LED
                 set_led((ii - j - 1) % led_count, hsb_to_rgb(ii * 9, 1, 0.8 * (0.8 ** (j + 1))))
         if ii > trail_length:
-            # Setze die ältere LED, die nicht mehr nachleuchtet, auf den Hintergrund
+            # Set the older LED that no longer trails to the background
             set_led((ii - trail_length - 1) % led_count, background)
         update_pix()
         time.sleep(0.05)

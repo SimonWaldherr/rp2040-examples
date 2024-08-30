@@ -5,57 +5,57 @@ from machine import I2C, Pin
 
 class PCA9685:
     """
-    Eine Klasse zur Steuerung des PCA9685 PWM/Servo-Treibers, die die Kontrolle
-    über bis zu 16 Servos über die I2C-Schnittstelle ermöglicht.
+    A class for controlling the PCA9685 PWM/Servo driver, which allows control
+    of up to 16 servos via the I2C interface.
     """
     def __init__(self, i2c, address=0x40):
         """
-        Initialisiert eine neue Instanz der PCA9685-Klasse.
+        Initializes a new instance of the PCA9685 class.
 
         Args:
-            i2c (I2C): Das I2C-Objekt für die Kommunikation.
-            address (int): Die I2C-Adresse des PCA9685-Moduls.
+            i2c (I2C): The I2C object for communication.
+            address (int): The I2C address of the PCA9685 module.
         """
         self.i2c = i2c
         self.address = address
         self.reset()
 
     def _write(self, reg, value):
-        """ Schreibt einen Byte-Wert in ein spezifisches PCA9685-Register. """
+        """ Writes a byte value to a specific PCA9685 register. """
         self.i2c.writeto_mem(self.address, reg, bytearray([value]))
 
     def _read(self, reg):
-        """ Liest einen Byte-Wert aus einem spezifischen PCA9685-Register. """
+        """ Reads a byte value from a specific PCA9685 register. """
         return self.i2c.readfrom_mem(self.address, reg, 1)[0]
 
     def reset(self):
-        """ Setzt das PCA9685-Gerät zurück. """
-        self._write(0x00, 0x00)  # Befehl zum Zurücksetzen in das Mode1-Register
+        """ Resets the PCA9685 device. """
+        self._write(0x00, 0x00)  # Command to reset in the Mode1 register
 
     def set_pwm_frequency(self, freq):
-        """ Stellt die PWM-Frequenz für den PCA9685 ein. """
+        """ Sets the PWM frequency for the PCA9685. """
         prescale_val = int(25000000.0 / 4096.0 / freq - 1 + 0.5)
         old_mode = self._read(0x00)
-        self._write(0x00, old_mode | 0x10)  # Schlafmodus
+        self._write(0x00, old_mode | 0x10)  # Sleep mode
         self._write(0xFE, prescale_val)
         self._write(0x00, old_mode)
         time.sleep_us(5)
-        self._write(0x00, old_mode | 0xa1)  # Neustart
+        self._write(0x00, old_mode | 0xa1)  # Restart
 
     def set_pwm(self, channel, on, off):
-        """ Setzt den Start (on) und das Ende (off) des Impulses für einen einzelnen PWM-Kanal. """
+        """ Sets the start (on) and end (off) of the pulse for a single PWM channel. """
         data = ustruct.pack('<HH', on, off)
         self.i2c.writeto_mem(self.address, 0x06 + 4 * channel, data)
 
     def read_pwm(self, channel):
-        """ Liest die PWM-Werte aus dem PCA9685. """
+        """ Reads the PWM values from the PCA9685. """
         data = self.i2c.readfrom_mem(self.address, 0x06 + 4 * channel, 4)
         return ustruct.unpack('<HH', data)
 
     def set_duty_cycle(self, channel, duty_cycle, invert=False):
-        """ Stellt den Tastgrad für einen PWM-Kanal ein. """
+        """ Sets the duty cycle for a PWM channel. """
         if not 0 <= duty_cycle <= 4095:
-            raise ValueError("Tastgrad außerhalb des zulässigen Bereichs.")
+            raise ValueError("Duty cycle out of range.")
         if invert:
             duty_cycle = 4095 - duty_cycle
         if duty_cycle == 0:
@@ -68,15 +68,15 @@ class PCA9685:
 class Servo:
     def __init__(self, i2c, address=0x40, freq=50, min_us=600, max_us=2400, degrees=180):
         """
-        Initialisiert eine neue Instanz der Servo-Klasse.
+        Initializes a new instance of the Servo class.
 
         Args:
-            i2c (I2C): Das I2C-Objekt für die Kommunikation.
-            address (int): Die I2C-Adresse des PCA9685-Moduls.
-            freq (int): Die Frequenz in Hz für die PWM-Steuerung.
-            min_us (int): Die minimale Impulsdauer in Mikrosekunden.
-            max_us (int): Die maximale Impulsdauer in Mikrosekunden.
-            degrees (int): Der Bewegungsumfang der Servos in Grad.
+            i2c (I2C): The I2C object for communication.
+            address (int): The I2C address of the PCA9685 module.
+            freq (int): The frequency in Hz for PWM control.
+            min_us (int): The minimum pulse width in microseconds.
+            max_us (int): The maximum pulse width in microseconds.
+            degrees (int): The range of motion for the servos in degrees.
         """
         self.pca9685 = PCA9685(i2c, address)
         self.pca9685.set_pwm_frequency(freq)
@@ -86,11 +86,11 @@ class Servo:
         self.degrees = degrees
 
     def _us_to_duty_cycle(self, us):
-        """ Konvertiert Mikrosekunden in den Tastgrad basierend auf der aktuellen Frequenz. """
+        """ Converts microseconds to duty cycle based on the current frequency. """
         return int(4095 * us / self.period)
 
     def set_position(self, channel, degrees=None, radians=None, us=None):
-        """ Stellt die Position des Servo ein. """
+        """ Sets the position of the servo. """
         if degrees is not None:
             duty_cycle = self.min_duty + (self.max_duty - self.min_duty) * degrees / self.degrees
         elif radians is not None:
@@ -104,27 +104,26 @@ class Servo:
         self.pca9685.set_duty_cycle(channel, duty_cycle)
 
     def release(self, channel):
-        """ Entlässt einen Servo, indem seine Bewegung gestoppt wird. """
+        """ Releases a servo by stopping its motion. """
         self.pca9685.set_duty_cycle(channel, 0)
 
-# Einrichtung von I2C und PCA9685
+# Setup of I2C and PCA9685
 sda = Pin(0)
 scl = Pin(1)
 i2c = I2C(id=0, sda=sda, scl=scl)
 servo_controller = Servo(i2c=i2c)
 
-# Beispielanwendung: Verschiedene Positionen für die Servos setzen
+# Example application: Setting different positions for the servos
 for channel in range(16):
-    # Stelle den Servo auf 0 Grad
+    # Set the servo to 0 degrees
     servo_controller.set_position(channel, degrees=0)
     time.sleep(0.5)
-    # Stelle den Servo auf 90 Grad
+    # Set the servo to 90 degrees
     servo_controller.set_position(channel, degrees=90)
     time.sleep(0.5)
-    # Stelle den Servo auf 180 Grad
+    # Set the servo to 180 degrees
     servo_controller.set_position(channel, degrees=180)
     time.sleep(0.5)
-    # Servo freigeben
+    # Release the servo
     servo_controller.release(channel)
     time.sleep(0.1)
-
