@@ -67,4 +67,11 @@ connect to your wifi and read json data from the internet.
 ## Golang
 
 ### [blink.go](https://github.com/SimonWaldherr/rp2040-examples/blob/main/blink.go)  
-If you are not comfortable with MicroPython, the Raspberry Pi Pico can also be programmed in Golang. Install [tinygo](https://tinygo.org/) and compile the go file with ```tinygo build -o blink.uf2 -target=pico blink.go```, than upload it to your Pico.  
+If you are not comfortable with MicroPython, the Raspberry Pi Pico can also be programmed in Golang. Install [tinygo](https://tinygo.org/) and compile the go file with ```tinygo build -o blink.uf2 -target=pico blink.go```, than upload it to your Pico.
+Alternatively, you can directly flash the examples to the Pico with ```tinygo flash -target=pico blink.go```. If you add ```-monitor``` to the command, you can see the output of the program in the terminal.  
+
+### [blink_with_ws2812.go](https://github.com/SimonWaldherr/rp2040-examples/blob/main/blink_with_ws2812.go)  
+If you want to use WS2812 LEDs with Golang, you can use this example.
+
+### [read_rfid_with_rc522.go](https://github.com/SimonWaldherr/rp2040-examples/blob/main/read_rfid_with_rc522.go)  
+If you want to read RFID cards with Golang, you can use this example.
