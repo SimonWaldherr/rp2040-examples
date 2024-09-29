@@ -1,6 +1,21 @@
 import machine
 import time
 
+"""
+Connections:
+- Nunchuk1:
+  - 3V3 → Pin 36 (3V3)
+  - GND → Pin 38 (GND)
+  - SDA → Pin 21 (GP16)
+  - SCL → Pin 22 (GP17)
+
+- Nunchuk2:
+  - 3V3 → Pin 36 (3V3)
+  - GND → Pin 38 (GND)
+  - SDA → Pin 24 (GP18)
+  - SCL → Pin 25 (GP19)
+"""
+
 class Nunchuck:
     INIT_COMMANDS = [b'\xf0\x55', b'\xfb\x00']
 
