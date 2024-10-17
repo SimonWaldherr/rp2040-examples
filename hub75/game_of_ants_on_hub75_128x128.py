@@ -17,6 +17,26 @@ display = hub75.Hub75(xWIDTH, xHEIGHT)
 # Grid size
 grid_size = 128
 
+def hsb_to_rgb(hue, saturation, brightness):
+    hue_normalized = (hue % 360) / 60
+    hue_index = int(hue_normalized)
+    hue_fraction = hue_normalized - hue_index
+
+    value1 = brightness * (1 - saturation)
+    value2 = brightness * (1 - saturation * hue_fraction)
+    value3 = brightness * (1 - saturation * (1 - hue_fraction))
+
+    red, green, blue = [
+        (brightness, value3, value1),
+        (value2, brightness, value1),
+        (value1, brightness, value3),
+        (value1, value2, brightness),
+        (value3, value1, brightness),
+        (brightness, value1, value2)
+    ][hue_index]
+
+    return int(red * 255), int(green * 255), int(blue * 255)
+
 # Optimized pixel remapping function without storing in RAM
 def remap_pixel(x, y):
     x1, y1 = x, y
@@ -67,34 +87,20 @@ def set_grid_value(grid, x, y, value):
 # Directions (0: North, 1: East, 2: South, 3: West)
 DIRECTIONS = [(0, -1), (1, 0), (0, 1), (-1, 0)]
 
-# Initialize ants
+# Initialize ants with unique colors
 def initialize_ants(num_ants):
-    return [{'pos': [random.randint(0, grid_size - 1), random.randint(0, grid_size - 1)],
-             'dir': random.randint(0, 3)} for _ in range(num_ants)]
+    ants = []
+    for _ in range(num_ants):
+        ant = {
+            'pos': [random.randint(0, grid_size - 1), random.randint(0, grid_size - 1)],
+            'dir': random.randint(0, 3),
+            'color': hsb_to_rgb(random.randint(0, 360), 1, 1)  # Bright random color
+        }
+        ants.append(ant)
+    return ants
 
 num_ants = 8
 ants = initialize_ants(num_ants)
-
-# Update only the affected cells of the grid
-def update_game_of_life_locally(grid, x, y, changed_cells):
-    live_neighbors = 0
-    for dy in (-1, 0, 1):
-        for dx in (-1, 0, 1):
-            if dx == 0 and dy == 0:
-                continue
-            nx = (x + dx) % grid_size
-            ny = (y + dy) % grid_size
-            live_neighbors += get_grid_value(grid, nx, ny)
-    
-    current_state = get_grid_value(grid, x, y)
-    
-    # Apply Game of Life rules
-    if current_state == 1 and (live_neighbors < 2 or live_neighbors > 3):
-        set_grid_value(grid, x, y, 0)  # Cell dies
-        changed_cells.append((x, y, 0))
-    elif current_state == 0 and live_neighbors == 3:
-        set_grid_value(grid, x, y, 1)  # Cell becomes alive
-        changed_cells.append((x, y, 1))
 
 # Update ants and their surroundings in the grid
 def update_ants(grid, ants):
@@ -118,25 +124,18 @@ def update_ants(grid, ants):
                 ant['dir'] = (current_dir - 1) % 4
             
             set_grid_value(grid, x, y, 1)
-            changed_cells.append((x, y, 1))
+            changed_cells.append((x, y, 1, ant['color']))
         else:
             # Turn right and set cell to dead
             ant['dir'] = (current_dir + 1) % 4
             set_grid_value(grid, x, y, 0)
-            changed_cells.append((x, y, 0))
+            changed_cells.append((x, y, 0, (0, 0, 0)))
         
         # Move the ant
         dx, dy = DIRECTIONS[ant['dir']]
         new_x = (x + dx) % grid_size
         new_y = (y + dy) % grid_size
 
-        # Apply Game of Life rules in the 3x3 area around the new position
-        for offset_y in (-1, 0, 1):
-            for offset_x in (-1, 0, 1):
-                nx = (new_x + offset_x) % grid_size
-                ny = (new_y + offset_y) % grid_size
-                update_game_of_life_locally(grid, nx, ny, changed_cells)
-        
         # Update the ant's position
         ant['pos'] = [new_x, new_y]
 
@@ -158,9 +157,8 @@ def main():
     # Draw the initial positions of the ants
     for ant in ants:
         x, y = ant['pos']
-        set_pixel_mapped(x, y, 255, 0, 0)  # Ants = Red
-
-    #display.update()  # Ensure initial state is rendered
+        r, g, b = ant['color']
+        set_pixel_mapped(x, y, r, g, b)
 
     while True:
         # Update ants and get the list of changed cells
@@ -175,16 +173,19 @@ def main():
                 set_pixel_mapped(x, y, 0, 0, 0)        # Dead = Black
 
         # Update only the changed cells on the display
-        for x, y, state in changed_cells:
+        for x, y, state, color in changed_cells:
             if state:
-                set_pixel_mapped(x, y, 155, 155, 155)  # Alive = White
+                # Slightly dimmer color for cells the ant has passed over
+                r, g, b = [int(c * 0.5) for c in color]
+                set_pixel_mapped(x, y, r, g, b)
             else:
                 set_pixel_mapped(x, y, 0, 0, 0)        # Dead = Black
 
         # Draw the ants in their new positions
         for ant in ants:
             x, y = ant['pos']
-            set_pixel_mapped(x, y, 255, 0, 0)  # Ants = Red
+            r, g, b = ant['color']
+            set_pixel_mapped(x, y, r, g, b)
 
 # Start the program
 if __name__ == "__main__":
