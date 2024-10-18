@@ -37,36 +37,30 @@ def hsb_to_rgb(hue, saturation, brightness):
 
     return int(red * 255), int(green * 255), int(blue * 255)
 
-# Optimized pixel remapping function without storing in RAM
-def remap_pixel(x, y):
-    x1, y1 = x, y
+# Funktion für das X/Y-Remapping
+@micropython.native
+def newXY(x, y):
+    yh = y % 64
     if y < 64:
         if x < 32:
-            x1 = 192 + y
-            y1 = 31 - x
+            return 192 + yh, 31 - x
         elif x < 64:
-            x1 = 191 - y
-            y1 = x - 32
+            return 191 - yh, x - 32
         elif x < 96:
-            x1 = 64 + y
-            y1 = 31 - (x - 64)
+            return 64 + yh, 31 - (x - 64)
         elif x < 128:
-            x1 = 63 - y
-            y1 = x - 96
-    else:
+            return 63 - yh, x - 96
+    elif y < 128:
         if x < 32:
-            x1 = 256 + (y - 64)
-            y1 = 31 - x
+            return 256 + yh, 31 - x
         elif x < 64:
-            x1 = 383 - (y - 64)
-            y1 = x - 32
+            return 383 - yh, x - 32
         elif x < 96:
-            x1 = 384 + (y - 64)
-            y1 = 31 - (x - 64)
+            return 384 + yh, 31 - (x - 64)
         elif x < 128:
-            x1 = 511 - (y - 64)
-            y1 = x - 96
-    return x1, y1
+            return 511 - yh, x - 96
+    else:
+        return x, y  # Identity transformation for values >= 128
 
 # Wrapper for set_pixel with optimized calculation
 def set_pixel_mapped(x, y, r, g, b):
