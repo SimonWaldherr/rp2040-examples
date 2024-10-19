@@ -32,46 +32,29 @@ char_dict = {
 }
 
 # Pixel Remapping
+@micropython.native
 def newXY(x, y):
-    x1 = x
-    y1 = y
+    yh = y % 64
     if y < 64:
-        yh = y
         if x < 32:
-            xh = x
-            x1 = 192 + yh
-            y1 = 31 - xh
+            return 192 + yh, 31 - x
         elif x < 64:
-            xh = x - 32
-            x1 = 191 - yh
-            y1 = xh
+            return 191 - yh, x - 32
         elif x < 96:
-            xh = x - 64
-            x1 = 64 + yh
-            y1 = 31 - xh
+            return 64 + yh, 31 - (x - 64)
         elif x < 128:
-            xh = x - 96
-            x1 = 63 - yh
-            y1 = xh
+            return 63 - yh, x - 96
     elif y < 128:
-        yh = y - 64
         if x < 32:
-            xh = x
-            x1 = 256 + yh
-            y1 = 31 - xh
+            return 256 + yh, 31 - x
         elif x < 64:
-            xh = x - 32
-            x1 = 383 - yh
-            y1 = xh
+            return 383 - yh, x - 32
         elif x < 96:
-            xh = x - 64
-            x1 = 384 + yh
-            y1 = 31 - xh
+            return 384 + yh, 31 - (x - 64)
         elif x < 128:
-            xh = x - 96
-            x1 = 511 - yh
-            y1 = xh
-    return x1, y1
+            return 511 - yh, x - 96
+    else:
+        return x, y  # Identity transformation for values >= 128
 
 # Wrapper für set_pixel mit Remapping
 def set_pixel_mapped(x, y, r, g, b):
