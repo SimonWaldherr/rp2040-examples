@@ -13,6 +13,10 @@ xHEIGHT = HEIGHT // 4    # 32 Zeilen pro Modul
 xWIDTH = WIDTH * 4       # 512 Spalten (4x128)
 display = hub75.Hub75(xWIDTH, xHEIGHT)
 
+# overclocking if necessary 
+if machine.freq() != 240000000:
+    machine.freq(240000000)
+
 # Funktion für das X/Y-Remapping
 @micropython.native
 def newXY(x, y):
