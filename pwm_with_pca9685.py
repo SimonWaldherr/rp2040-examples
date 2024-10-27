@@ -113,17 +113,32 @@ scl = Pin(1)
 i2c = I2C(id=0, sda=sda, scl=scl)
 servo_controller = Servo(i2c=i2c)
 
-# Example application: Setting different positions for the servos
-for channel in range(16):
-    # Set the servo to 0 degrees
-    servo_controller.set_position(channel, degrees=0)
-    time.sleep(0.5)
-    # Set the servo to 90 degrees
-    servo_controller.set_position(channel, degrees=90)
-    time.sleep(0.5)
-    # Set the servo to 180 degrees
-    servo_controller.set_position(channel, degrees=180)
-    time.sleep(0.5)
-    # Release the servo
-    servo_controller.release(channel)
-    time.sleep(0.1)
+# Adjustable delay for servo movement
+initial_delay = 0.5
+release_delay = 0.1
+
+# Example application: Set different positions for each servo with parameterized delay
+try:
+    for channel in range(16):
+        # Set servo to 0 degrees
+        print(f"Setting channel {channel} to 0 degrees.")
+        servo_controller.set_position(channel, degrees=0)
+        time.sleep(initial_delay)
+
+        # Set servo to 90 degrees
+        print(f"Setting channel {channel} to 90 degrees.")
+        servo_controller.set_position(channel, degrees=90)
+        time.sleep(initial_delay)
+
+        # Set servo to 180 degrees
+        print(f"Setting channel {channel} to 180 degrees.")
+        servo_controller.set_position(channel, degrees=180)
+        time.sleep(initial_delay)
+
+        # Release the servo
+        print(f"Releasing channel {channel}.")
+        servo_controller.release(channel)
+        time.sleep(release_delay)
+except Exception as e:
+    print(f"Error during servo control: {e}")
+
