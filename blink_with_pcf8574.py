@@ -1,23 +1,36 @@
 from machine import Pin, I2C
 import utime
 
-i2c = I2C(0, scl=Pin(17), sda=Pin(16), freq=100000)
+# Parameterize I2C settings
+i2c_bus = 0
+scl_pin = 17
+sda_pin = 16
+freq = 100000
 address = 0x20
+toggle_delay = 1  # delay in seconds
 
-def toggle_pins():
+# Initialize I2C
+i2c = I2C(i2c_bus, scl=Pin(scl_pin), sda=Pin(sda_pin), freq=freq)
+
+def toggle_pins(address, delay=1):
     try:
         for i in range(8):
             pin_state = 1 << i
             i2c.writeto(address, bytearray([pin_state]))
-            utime.sleep(1)
+            utime.sleep(delay)
             
-            # Nachprüfen, was tatsächlich geschrieben wurde
+            # Verify the written state
             read_back = i2c.readfrom(address, 1)
-            print("Geschriebener Zustand:", bin(pin_state), "Gelesener Zustand:", bin(read_back[0]))
+            print("Written State:", bin(pin_state), "Read State:", bin(read_back[0]))
             
+            # Reset pins after each toggle
             i2c.writeto(address, bytearray([0x00]))
     except OSError as e:
-        print("Fehler beim Zugriff auf das I2C-Gerät:", e)
+        print("Error accessing I2C device:", e)
 
-while True:
-    toggle_pins()
+# Run toggle function in a controlled manner
+try:
+    while True:
+        toggle_pins(address, toggle_delay)
+except KeyboardInterrupt:
+    print("Program stopped by user")
