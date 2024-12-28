@@ -64,7 +64,7 @@ def newXY(x, y):
 
 # Wrapper for set_pixel with optimized calculation
 def set_pixel_mapped(x, y, r, g, b):
-    x1, y1 = remap_pixel(x, y)
+    x1, y1 = newXY(x, y)
     if 0 <= x1 < xWIDTH and 0 <= y1 < xHEIGHT:
         display.set_pixel(x1, y1, r, g, b)
 
@@ -184,3 +184,4 @@ def main():
 # Start the program
 if __name__ == "__main__":
     main()
+
