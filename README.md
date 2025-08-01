@@ -14,8 +14,11 @@ If you're also interested in Raspberry Pi projects using Golang, be sure to chec
 - [Documentation & Resources](#documentation--resources)
 - [MicroPython](#micropython)
   - [MicroPython Examples](#micropython-examples)
+  - [Advanced Examples](#advanced-examples)
 - [Golang](#golang)
   - [Golang Examples](#golang-examples)
+- [Project Categories](#project-categories)
+- [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -51,6 +54,13 @@ MicroPython is an efficient and beginner-friendly way to program your Raspberry 
 - [RPI Pico](https://micropython.org/download/RPI_PICO/)
 - [RPI Pico W](https://micropython.org/download/RPI_PICO_W/)
 - [RPI Pico 2](https://micropython.org/download/RPI_PICO2/)
+
+### Getting Started
+
+1. **Install MicroPython firmware**: Download and flash the .uf2 file to your Pico
+2. **Choose an IDE**: We recommend [Thonny](https://thonny.org/) for beginners
+3. **Connect your Pico**: Use a USB cable to connect to your computer
+4. **Run examples**: Copy and paste code directly into the REPL or save as .py files
 
 ### MicroPython Examples
 
@@ -110,11 +120,113 @@ Explore these example scripts to get hands-on with MicroPython:
 - **[read_rfid_with_rc522_with_light.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/read_rfid_with_rc522_with_light.py)**  
   Enhance RFID reading with visual feedback using LEDs.
 
+- **[temperature_with_dht22.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/temperature_with_dht22.py)**  
+  Read temperature and humidity data using the popular [DHT22 sensor](https://amzn.to/3XQfGcP).
+
+- **[environmental_with_bme280.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/environmental_with_bme280.py)**  
+  Monitor temperature, humidity, and atmospheric pressure with the [BME280 sensor](https://amzn.to/3YKfNvR).
+
+- **[display_with_ssd1306.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/display_with_ssd1306.py)**  
+  Control a small [SSD1306 OLED display](https://amzn.to/3YMgHwQ) via SPI interface for text and graphics.
+
+- **[button_with_interrupts.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/button_with_interrupts.py)**  
+  Handle button inputs with proper debouncing and interrupt-driven responses.
+
+- **[uart_communication.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/uart_communication.py)**  
+  Demonstrate UART serial communication including GPS data simulation and echo server.
+
+- **[motor_control.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/motor_control.py)**  
+  Control DC motors, servo motors, and stepper motors using PWM and digital outputs.
+
+- **[communication_examples.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/communication_examples.py)**  
+  Comprehensive examples for I2C, SPI, and general GPIO communication protocols.
+
+- **[rtc_and_timing.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/rtc_and_timing.py)**  
+  Real-time clock operations with [DS3231 RTC module](https://amzn.to/3YLfPwX) and precise timing examples.
+
+- **[led_matrix_max7219.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/led_matrix_max7219.py)**  
+  Drive 8x8 LED matrices using the [MAX7219 controller](https://amzn.to/3YMhGxS) for text and pattern display.
+
+- **[memory_eeprom.py](https://github.com/SimonWaldherr/rp2040-examples/blob/main/memory_eeprom.py)**  
+  Read and write data to external [EEPROM memory](https://amzn.to/3YNgKwP) for persistent storage.
+
+---
+
+## Advanced Examples
+
+The repository includes advanced examples that demonstrate more complex integrations and use cases:
+
+### Sensors & Environmental Monitoring
+
+- **DHT22/BME280**: Temperature, humidity, and pressure monitoring
+- **Real-time data logging**: Store sensor readings to EEPROM memory
+- **ADC applications**: Multi-channel analog sensor reading
+
+### Display & Output
+
+- **OLED displays**: SSD1306 driver with text and graphics
+- **LED matrices**: MAX7219 8x8 matrix control with patterns
+- **Advanced LED effects**: WS2812 animations and Hub75 visualizations
+
+### Motor Control & Robotics
+
+- **DC motor control**: PWM speed control with direction
+- **Servo positioning**: Precise servo motor control
+- **Stepper motors**: Step-by-step positioning control
+
+### Communication Protocols
+
+- **I2C device scanning**: Automatic detection of connected devices
+- **UART communication**: Serial data transmission and GPS simulation
+- **SPI interfaces**: High-speed peripheral communication
+
+### Timing & Memory
+
+- **Real-time clocks**: DS3231 RTC for timekeeping
+- **External memory**: EEPROM storage for persistent data
+- **Interrupt handling**: Efficient button and sensor response
+
+---
+
+## Project Categories
+
+This repository covers a wide range of project categories to help you learn and build:
+
+| Category | Examples | Skill Level |
+|----------|----------|-------------|
+| **Basic I/O** | LED blinking, button input, ADC reading | Beginner |
+| **Sensors** | Distance (HC-SR04), weight (HX711), environmental (DHT22, BME280) | Beginner-Intermediate |
+| **Communication** | I2C, SPI, UART, RFID (RC522) | Intermediate |
+| **Displays** | OLED (SSD1306), LED matrices (MAX7219, Hub75) | Intermediate |
+| **Motor Control** | DC motors, servos, steppers | Intermediate |
+| **Networking** | WiFi connectivity, web data fetching | Intermediate |
+| **Advanced** | Game simulations, real-time systems, data logging | Advanced |
+
 ---
 
 ## Golang
 
 For those who prefer to code in Golang, this section provides examples of using Golang on the Raspberry Pi Pico with the [TinyGo](https://tinygo.org/) compiler.
+
+### Getting Started with TinyGo
+
+1. **Install TinyGo**: Follow the [installation guide](https://tinygo.org/getting-started/install/)
+2. **Verify installation**: Run `tinygo version` in your terminal
+3. **Connect your Pico**: Hold BOOTSEL button while connecting USB
+4. **Build and flash**: Use `tinygo flash -target=pico your_program.go`
+
+### TinyGo Commands
+
+```bash
+# Build only (creates .uf2 file)
+tinygo build -o program.uf2 -target=pico program.go
+
+# Build and flash directly
+tinygo flash -target=pico program.go
+
+# Monitor serial output
+tinygo flash -target=pico -monitor program.go
+```
 
 ### Golang Examples
 
@@ -141,6 +253,49 @@ For those who prefer to code in Golang, this section provides examples of using 
 
 - **[read_rfid_with_rc522.go](https://github.com/SimonWaldherr/rp2040-examples/blob/main/read_rfid_with_rc522.go)**  
   Read RFID cards and tags using the RC522 module and Golang.
+
+- **[button_control.go](https://github.com/SimonWaldherr/rp2040-examples/blob/main/button_control.go)**  
+  Simple button input handling with debouncing using TinyGo.
+
+- **[adc_reading.go](https://github.com/SimonWaldherr/rp2040-examples/blob/main/adc_reading.go)**  
+  Read analog values from multiple ADC channels and convert to voltage.
+
+- **[pwm_patterns.go](https://github.com/SimonWaldherr/rp2040-examples/blob/main/pwm_patterns.go)**  
+  Generate various PWM patterns including sawtooth, triangle, and square waves.
+
+- **[i2c_scanner.go](https://github.com/SimonWaldherr/rp2040-examples/blob/main/i2c_scanner.go)**  
+  Scan I2C bus for connected devices and attempt basic communication.
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**MicroPython:**
+
+- **"No module named 'machine'"**: Make sure MicroPython firmware is installed correctly
+- **Connection issues**: Check USB cable and ensure Pico is recognized as a serial device
+- **Import errors**: Verify all required files are uploaded to the Pico
+
+**TinyGo:**
+
+- **"tinygo command not found"**: Ensure TinyGo is properly installed and in your PATH
+- **Flash errors**: Make sure Pico is in BOOTSEL mode (hold button while connecting)
+- **Build errors**: Check TinyGo version compatibility with target features
+
+**Hardware:**
+
+- **No response from sensors**: Verify wiring and power connections
+- **I2C issues**: Check pull-up resistors (often 4.7kΩ) on SDA and SCL lines
+- **PWM not working**: Ensure pins support PWM functionality
+
+### Getting Help
+
+- Check the [official Raspberry Pi Pico documentation](https://www.raspberrypi.com/documentation/microcontrollers/)
+- Visit the [MicroPython forum](https://forum.micropython.org/)
+- Browse [TinyGo examples and documentation](https://tinygo.org/docs/)
+- Submit issues to this repository for example-specific problems
 
 ---
 
