@@ -1,0 +1,2130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MicroPython Generator for Raspberry Pi Pico</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Blockly CSS -->
+    <style>
+        .blockly-workspace {
+            height: 600px;
+            width: 100%;
+        }
+        
+        .code-output {
+            height: 400px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            overflow-y: auto;
+        }
+        
+        .toolbar {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 0.375rem;
+            margin-bottom: 15px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 20px;
+        }
+        
+        .block-category {
+            margin-bottom: 10px;
+        }
+        
+        .example-card {
+            border-left: 4px solid #6c5ce7;
+            margin-bottom: 10px;
+        }
+        
+        .pico-pinout {
+            position: relative;
+            max-width: 100%;
+            margin: 20px auto;
+            text-align: center;
+        }
+        
+        .pico-board {
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .pin-overlay {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: rgba(255, 215, 0, 0.8);
+            border: 2px solid #ff6b6b;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        
+        .pin-overlay:hover {
+            background-color: #ff6b6b;
+            transform: scale(1.0);
+            box-shadow: 0 0 10px rgba(255, 107, 107, 0.7);
+        }
+        
+        .pin-overlay.selected {
+            background-color: #ff6b6b;
+            transform: scale(1.0);
+            box-shadow: 0 0 15px rgba(255, 107, 107, 0.9);
+        }
+        
+        .pin-hole {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            stroke-width: 2;
+        }
+        
+        .pin-hole:hover {
+            transform: scale(1.0);
+            stroke-width: 3;
+            filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.8));
+        }
+        
+        .pin-hole.selected {
+            transform: scale(1.0);
+            stroke-width: 4;
+            filter: drop-shadow(0 0 8px rgba(255, 107, 107, 0.9));
+            stroke: #ff6b6b;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { filter: drop-shadow(0 0 8px rgba(255, 107, 107, 0.9)); }
+            50% { filter: drop-shadow(0 0 12px rgba(255, 107, 107, 1)); }
+            100% { filter: drop-shadow(0 0 8px rgba(255, 107, 107, 0.9)); }
+        }
+        
+        .pin-info {
+            transition: all 0.3s ease;
+        }
+        
+        .collapse-button {
+            color: inherit !important;
+            text-decoration: none !important;
+            border: none !important;
+            background: none !important;
+        }
+        
+        .collapse-button:hover {
+            color: var(--bs-primary) !important;
+        }
+        
+        .collapse-button i {
+            transition: transform 0.3s ease;
+        }
+        
+        .collapse-button[aria-expanded="true"] i {
+            transform: rotate(180deg);
+        }
+        
+        .card-header .btn-link {
+            font-weight: 600;
+        }
+        
+        .pin-label {
+            position: absolute;
+            font-size: 8px;
+            font-weight: bold;
+            color: #333;
+            pointer-events: none;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+        }
+        
+        .pin-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .pin-info.empty {
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 2px dashed #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-0">🔧 MicroPython Generator for Raspberry Pi Pico</h1>
+                    <p class="mb-0 mt-2">Visual programming for RP2040 & RP2350 microcontrollers</p>
+                </div>
+                <div id="statusIndicator" class="badge bg-warning px-3 py-2">
+                    <i class="fas fa-spinner fa-spin me-1"></i>
+                    Loading...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+
+        <div class="row">
+            <!-- Sidebar with examples and controls -->
+            <div class="col-md-4 col-lg-4">
+                <!-- Sidebar content (examples, pin selector, controls, usage tips) -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <button class="btn btn-link w-100 text-start collapse-button" type="button" data-bs-toggle="collapse" data-bs-target="#quickExamples" aria-expanded="false" aria-controls="quickExamples">
+                                📚 Quick Examples
+                                <i class="fas fa-chevron-down float-end mt-1"></i>
+                            </button>
+                        </h5>
+                    </div>
+                    <div class="collapse" id="quickExamples">
+                        <div class="card-body p-0">
+                            <div style="max-height: 300px; overflow-y: auto; padding: 10px;">
+                                <div class="example-card card mb-2">
+                                    <div class="card-body p-2">
+                                        <button class="btn btn-sm btn-outline-primary w-100 mb-1" onclick="loadExample('blink')">
+                                            💡 Blink LED
+                                        </button>
+                                        <small class="text-muted">Basic LED control</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="example-card card mb-2">
+                                    <div class="card-body p-2">
+                                        <button class="btn btn-sm btn-outline-primary w-100 mb-1" onclick="loadExample('button')">
+                                            🔘 Button Input
+                                        </button>
+                                        <small class="text-muted">Read button presses</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="example-card card mb-2">
+                                    <div class="card-body p-2">
+                                        <button class="btn btn-sm btn-outline-primary w-100 mb-1" onclick="loadExample('sensor')">
+                                            🌡️ Temperature Sensor
+                                        </button>
+                                        <small class="text-muted">DHT22 temperature reading</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="example-card card mb-2">
+                                    <div class="card-body p-2">
+                                        <button class="btn btn-sm btn-outline-primary w-100 mb-1" onclick="loadExample('pwm')">
+                                            📊 PWM Control
+                                        </button>
+                                        <small class="text-muted">Motor/servo control</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="example-card card mb-2">
+                                    <div class="card-body p-2">
+                                        <button class="btn btn-sm btn-outline-success w-100 mb-1" onclick="loadExample('adc')">
+                                            📈 Analog Reading
+                                        </button>
+                                        <small class="text-muted">Read analog sensors</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="example-card card mb-2">
+                                    <div class="card-body p-2">
+                                        <button class="btn btn-sm btn-outline-info w-100 mb-1" onclick="loadExample('i2c')">
+                                            🔗 I2C Communication
+                                        </button>
+                                        <small class="text-muted">Setup I2C bus</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="example-card card mb-2">
+                                    <div class="card-body p-2">
+                                        <button class="btn btn-sm btn-outline-warning w-100 mb-1" onclick="loadExample('servo')">
+                                            🎮 Servo Motor
+                                        </button>
+                                        <small class="text-muted">Control servo position</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="example-card card mb-2">
+                                    <div class="card-body p-2">
+                                        <button class="btn btn-sm btn-outline-danger w-100 mb-1" onclick="loadExample('neopixel')">
+                                            🌈 NeoPixel LEDs
+                                        </button>
+                                        <small class="text-muted">RGB LED strip control</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="example-card card mb-2">
+                                    <div class="card-body p-2">
+                                        <button class="btn btn-sm btn-outline-secondary w-100 mb-1" onclick="loadExample('ultrasonic')">
+                                            📏 Distance Sensor
+                                        </button>
+                                        <small class="text-muted">HC-SR04 ultrasonic</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="example-card card mb-2">
+                                    <div class="card-body p-2">
+                                        <button class="btn btn-sm btn-outline-dark w-100 mb-1" onclick="loadExample('traffic_light')">
+                                            🚦 Traffic Light
+                                        </button>
+                                        <small class="text-muted">Sequential LED control</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="example-card card mb-2">
+                                    <div class="card-body p-2">
+                                        <button class="btn btn-sm btn-outline-primary w-100 mb-1" onclick="loadExample('buzzer')">
+                                            🔊 Buzzer Tones
+                                        </button>
+                                        <small class="text-muted">PWM sound generation</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="example-card card mb-2">
+                                    <div class="card-body p-2">
+                                        <button class="btn btn-sm btn-outline-success w-100 mb-1" onclick="loadExample('light_sensor')">
+                                            ☀️ Light Sensor
+                                        </button>
+                                        <small class="text-muted">Photoresistor reading</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <button class="btn btn-link w-100 text-start collapse-button" type="button" data-bs-toggle="collapse" data-bs-target="#pinSelector" aria-expanded="false" aria-controls="pinSelector">
+                                📍 Pin Selector
+                                <i class="fas fa-chevron-down float-end mt-1"></i>
+                            </button>
+                        </h5>
+                    </div>
+                    <div class="collapse" id="pinSelector">
+                        <div class="card-body p-2">
+                        <div class="pico-pinout">
+                            <!-- Pico board SVG with clickable pins -->
+                            <svg viewBox="0 0 400 600" class="pico-board" xmlns="http://www.w3.org/2000/svg">
+                                <!-- Board outline -->
+                                <rect x="50" y="50" width="300" height="500" rx="25" ry="25" 
+                                      fill="#1a5c3a" stroke="#0f3d26" stroke-width="2"/>
+                                
+                                <!-- USB connector -->
+                                <rect x="160" y="25" width="80" height="30" rx="5" ry="5" 
+                                      fill="#c0c0c0" stroke="#888" stroke-width="1"/>
+                                
+                                <!-- Chip outline -->
+                                <rect x="150" y="250" width="100" height="100" rx="5" ry="5" 
+                                      fill="#333" stroke="#555" stroke-width="1"/>
+                                
+                                <!-- GP25 Built-in LED indicator on chip -->
+                                <circle cx="220" cy="280" r="6" fill="#ff8c00" stroke="#ff6b6b" stroke-width="2" 
+                                        class="pin-hole" data-pin="GP25" style="cursor: pointer;" title="GP25 - Built-in LED"/>
+                                <text x="220" y="295" text-anchor="middle" font-size="6" fill="white">LED</text>
+                                
+                                <!-- Raspberry Pi logo area -->
+                                <circle cx="200" cy="450" r="40" fill="#0a4d2a" stroke="#1a5c3a" stroke-width="2"/>
+                                <text x="200" y="455" text-anchor="middle" fill="white" font-size="12" font-weight="bold">🍇</text>
+                                
+                                <!-- Left side pins -->
+                                <g id="left-pins">
+                                    <circle cx="70" cy="100" r="8" fill="#b8860b" class="pin-hole" data-pin="GP0" data-num="0"/>
+                                    <circle cx="70" cy="120" r="8" fill="#b8860b" class="pin-hole" data-pin="GP1" data-num="1"/>
+                                    <circle cx="70" cy="140" r="8" fill="#666" class="pin-hole" data-pin="GND" data-num="gnd"/>
+                                    <circle cx="70" cy="160" r="8" fill="#b8860b" class="pin-hole" data-pin="GP2" data-num="2"/>
+                                    <circle cx="70" cy="180" r="8" fill="#b8860b" class="pin-hole" data-pin="GP3" data-num="3"/>
+                                    <circle cx="70" cy="200" r="8" fill="#b8860b" class="pin-hole" data-pin="GP4" data-num="4"/>
+                                    <circle cx="70" cy="220" r="8" fill="#b8860b" class="pin-hole" data-pin="GP5" data-num="5"/>
+                                    <circle cx="70" cy="240" r="8" fill="#666" class="pin-hole" data-pin="GND" data-num="gnd"/>
+                                    <circle cx="70" cy="260" r="8" fill="#b8860b" class="pin-hole" data-pin="GP6" data-num="6"/>
+                                    <circle cx="70" cy="280" r="8" fill="#b8860b" class="pin-hole" data-pin="GP7" data-num="7"/>
+                                    <circle cx="70" cy="300" r="8" fill="#b8860b" class="pin-hole" data-pin="GP8" data-num="8"/>
+                                    <circle cx="70" cy="320" r="8" fill="#b8860b" class="pin-hole" data-pin="GP9" data-num="9"/>
+                                    <circle cx="70" cy="340" r="8" fill="#666" class="pin-hole" data-pin="GND" data-num="gnd"/>
+                                    <circle cx="70" cy="360" r="8" fill="#b8860b" class="pin-hole" data-pin="GP10" data-num="10"/>
+                                    <circle cx="70" cy="380" r="8" fill="#b8860b" class="pin-hole" data-pin="GP11" data-num="11"/>
+                                    <circle cx="70" cy="400" r="8" fill="#b8860b" class="pin-hole" data-pin="GP12" data-num="12"/>
+                                    <circle cx="70" cy="420" r="8" fill="#b8860b" class="pin-hole" data-pin="GP13" data-num="13"/>
+                                    <circle cx="70" cy="440" r="8" fill="#666" class="pin-hole" data-pin="GND" data-num="gnd"/>
+                                    <circle cx="70" cy="460" r="8" fill="#b8860b" class="pin-hole" data-pin="GP14" data-num="14"/>
+                                    <circle cx="70" cy="480" r="8" fill="#b8860b" class="pin-hole" data-pin="GP15" data-num="15"/>
+                                </g>
+                                
+                                <!-- Right side pins -->
+                                <g id="right-pins">
+                                    <circle cx="330" cy="100" r="8" fill="#dc143c" class="pin-hole" data-pin="VBUS" data-num="vbus"/>
+                                    <circle cx="330" cy="120" r="8" fill="#dc143c" class="pin-hole" data-pin="VSYS" data-num="vsys"/>
+                                    <circle cx="330" cy="140" r="8" fill="#666" class="pin-hole" data-pin="GND" data-num="gnd"/>
+                                    <circle cx="330" cy="160" r="8" fill="#dc143c" class="pin-hole" data-pin="3V3_EN" data-num="3v3_en"/>
+                                    <circle cx="330" cy="180" r="8" fill="#dc143c" class="pin-hole" data-pin="3V3" data-num="3v3"/>
+                                    <circle cx="330" cy="200" r="8" fill="#8fbc8f" class="pin-hole" data-pin="ADC_VREF" data-num="adc_vref"/>
+                                    <circle cx="330" cy="220" r="8" fill="#4169e1" class="pin-hole" data-pin="GP28" data-num="28"/>
+                                    <circle cx="330" cy="240" r="8" fill="#666" class="pin-hole" data-pin="AGND" data-num="agnd"/>
+                                    <circle cx="330" cy="260" r="8" fill="#4169e1" class="pin-hole" data-pin="GP27" data-num="27"/>
+                                    <circle cx="330" cy="280" r="8" fill="#4169e1" class="pin-hole" data-pin="GP26" data-num="26"/>
+                                    <circle cx="330" cy="300" r="8" fill="#666" class="pin-hole" data-pin="RUN" data-num="run"/>
+                                    <circle cx="330" cy="320" r="8" fill="#b8860b" class="pin-hole" data-pin="GP22" data-num="22"/>
+                                    <circle cx="330" cy="340" r="8" fill="#666" class="pin-hole" data-pin="GND" data-num="gnd"/>
+                                    <circle cx="330" cy="360" r="8" fill="#b8860b" class="pin-hole" data-pin="GP21" data-num="21"/>
+                                    <circle cx="330" cy="380" r="8" fill="#b8860b" class="pin-hole" data-pin="GP20" data-num="20"/>
+                                    <circle cx="330" cy="400" r="8" fill="#b8860b" class="pin-hole" data-pin="GP19" data-num="19"/>
+                                    <circle cx="330" cy="420" r="8" fill="#b8860b" class="pin-hole" data-pin="GP18" data-num="18"/>
+                                    <circle cx="330" cy="440" r="8" fill="#666" class="pin-hole" data-pin="GND" data-num="gnd"/>
+                                    <circle cx="330" cy="460" r="8" fill="#b8860b" class="pin-hole" data-pin="GP17" data-num="17"/>
+                                    <circle cx="330" cy="480" r="8" fill="#b8860b" class="pin-hole" data-pin="GP16" data-num="16"/>
+                                </g>
+                                
+                                <!-- Pin labels -->
+                                <g id="pin-labels" font-size="8" font-weight="bold" text-anchor="middle">
+                                    <!-- Left labels -->
+                                    <text x="25" y="105" fill="white">GP0</text>
+                                    <text x="25" y="125" fill="white">GP1</text>
+                                    <text x="25" y="145" fill="white">GND</text>
+                                    <text x="25" y="165" fill="white">GP2</text>
+                                    <text x="25" y="185" fill="white">GP3</text>
+                                    <text x="25" y="205" fill="white">GP4</text>
+                                    <text x="25" y="225" fill="white">GP5</text>
+                                    <text x="25" y="245" fill="white">GND</text>
+                                    <text x="25" y="265" fill="white">GP6</text>
+                                    <text x="25" y="285" fill="white">GP7</text>
+                                    <text x="25" y="305" fill="white">GP8</text>
+                                    <text x="25" y="325" fill="white">GP9</text>
+                                    <text x="25" y="345" fill="white">GND</text>
+                                    <text x="25" y="365" fill="white">GP10</text>
+                                    <text x="25" y="385" fill="white">GP11</text>
+                                    <text x="25" y="405" fill="white">GP12</text>
+                                    <text x="25" y="425" fill="white">GP13</text>
+                                    <text x="25" y="445" fill="white">GND</text>
+                                    <text x="25" y="465" fill="white">GP14</text>
+                                    <text x="25" y="485" fill="white">GP15</text>
+                                    
+                                    <!-- Right labels -->
+                                    <text x="375" y="105" fill="white">VBUS</text>
+                                    <text x="375" y="125" fill="white">VSYS</text>
+                                    <text x="375" y="145" fill="white">GND</text>
+                                    <text x="375" y="165" fill="white">3V3_EN</text>
+                                    <text x="375" y="185" fill="white">3V3</text>
+                                    <text x="375" y="205" fill="white">ADC_VREF</text>
+                                    <text x="375" y="225" fill="white">GP28</text>
+                                    <text x="375" y="245" fill="white">AGND</text>
+                                    <text x="375" y="265" fill="white">GP27</text>
+                                    <text x="375" y="285" fill="white">GP26</text>
+                                    <text x="375" y="305" fill="white">RUN</text>
+                                    <text x="375" y="325" fill="white">GP22</text>
+                                    <text x="375" y="345" fill="white">GND</text>
+                                    <text x="375" y="365" fill="white">GP21</text>
+                                    <text x="375" y="385" fill="white">GP20</text>
+                                    <text x="375" y="405" fill="white">GP19</text>
+                                    <text x="375" y="425" fill="white">GP18</text>
+                                    <text x="375" y="445" fill="white">GND</text>
+                                    <text x="375" y="465" fill="white">GP17</text>
+                                    <text x="375" y="485" fill="white">GP16</text>
+                                </g>
+                            </svg>
+                        </div>
+                        
+                        <div id="pin-info" class="pin-info empty">
+                            <small>Click on a pin to see its capabilities</small>
+                        </div>
+                        
+                        <!-- Quick Pin Selection -->
+                        <div class="mt-2">
+                            <small class="text-muted d-block mb-1">Quick Select:</small>
+                            <div class="btn-group-vertical w-100" role="group">
+                                <button class="btn btn-outline-warning btn-sm" onclick="selectPin('GP25')" title="Built-in LED">
+                                    💡 LED (GP25)
+                                </button>
+                                <button class="btn btn-outline-primary btn-sm" onclick="selectPin('GP26')" title="ADC0 - Analog input">
+                                    📊 ADC0 (GP26)
+                                </button>
+                                <button class="btn btn-outline-success btn-sm" onclick="selectPin('GP16')" title="Popular I2C SDA">
+                                    🔗 I2C SDA (GP16)
+                                </button>
+                                <button class="btn btn-outline-info btn-sm" onclick="selectPin('GP14')" title="Common button pin">
+                                    🔘 Button (GP14)
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Pin Type Filter -->
+                        <div class="mt-2">
+                            <small class="text-muted d-block mb-1">Filter by Type:</small>
+                            <select class="form-select form-select-sm" onchange="filterPinsByType(this.value)">
+                                <option value="all">All Pins</option>
+                                <option value="GPIO">GPIO Pins</option>
+                                <option value="ADC">ADC Pins</option>
+                                <option value="Power">Power Pins</option>
+                                <option value="Ground">Ground Pins</option>
+                            </select>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <button class="btn btn-link w-100 text-start collapse-button" type="button" data-bs-toggle="collapse" data-bs-target="#controls" aria-expanded="false" aria-controls="controls">
+                                ⚙️ Controls
+                                <i class="fas fa-chevron-down float-end mt-1"></i>
+                            </button>
+                        </h5>
+                    </div>
+                    <div class="collapse" id="controls">
+                        <div class="card-body">
+                        <button class="btn btn-success w-100 mb-2" onclick="generateCode()">
+                            🔄 Generate Code
+                        </button>
+                        <button class="btn btn-warning w-100 mb-2" onclick="clearWorkspace()">
+                            🗑️ Clear Workspace
+                        </button>
+                        <button class="btn btn-info w-100 mb-2" onclick="downloadCode()">
+                            💾 Download .py
+                        </button>
+                    </div>
+                    </div>
+                </div>
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <button class="btn btn-link w-100 text-start collapse-button" type="button" data-bs-toggle="collapse" data-bs-target="#usageTips" aria-expanded="false" aria-controls="usageTips">
+                                📋 Usage Tips
+                                <i class="fas fa-chevron-down float-end mt-1"></i>
+                            </button>
+                        </h5>
+                    </div>
+                    <div class="collapse" id="usageTips">
+                        <div class="card-body">
+                        <small>
+                            <ul class="list-unstyled">
+                                <li>• Drag blocks from toolbox</li>
+                                <li>• Connect blocks together</li>
+                                <li>• Generate MicroPython code</li>
+                                <li>• Copy to Thonny or your IDE</li>
+                                <li>• Upload to your Pico</li>
+                            </ul>
+                        </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Main content area: Blockly Workspace and Code Output -->
+            <div class="col-md-8 col-lg-8">
+                <div class="row gx-3">
+                    <div class="col-lg-7 mb-3">
+                        <div class="card shadow h-100 border-0" style="background: linear-gradient(120deg, #f8fafd 60%, #e9f0ff 100%);">
+                            <div class="card-header bg-transparent border-bottom-0 pb-2 pt-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold" style="font-size:1.1rem; letter-spacing:0.5px;">Blockly Workspace</span>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="workspace.zoomToFit()" title="Fit to screen">
+                                            <i class="fas fa-expand-arrows-alt"></i>
+                                        </button>
+                                        <button class="btn btn-outline-primary" onclick="workspace.zoomIn()" title="Zoom In">
+                                            <i class="fas fa-search-plus"></i>
+                                        </button>
+                                        <button class="btn btn-outline-primary" onclick="workspace.zoomOut()" title="Zoom Out">
+                                            <i class="fas fa-search-minus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body p-2" style="height: 620px; min-height: 400px; background: transparent;">
+                                <div id="blocklyArea" class="blockly-workspace border-0 rounded-3 shadow-sm" style="height: 100%; background: #fafdff; box-shadow: 0 2px 8px rgba(80,120,200,0.04);"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="card shadow h-100 border-0" style="position:sticky; top:20px; background: linear-gradient(120deg, #23272f 60%, #2d3140 100%);">
+                            <div class="card-header bg-transparent border-bottom-0 pb-2 pt-3 d-flex justify-content-between align-items-center">
+                                <span class="mb-0" style="font-family: 'Fira Mono', 'Consolas', 'Courier New', monospace; color: #ffe066; font-size: 1rem; letter-spacing: 0.5px;">🐍 MicroPython Code</span>
+                                <button id="copyBtn" class="btn btn-sm btn-outline-warning px-3" onclick="copyToClipboard()" title="Copy code to clipboard" style="transition: background 0.2s;">
+                                    <i class="fas fa-copy"></i> <span class="d-none d-md-inline">Copy</span>
+                                </button>
+                            </div>
+                            <div class="card-body p-2">
+                                <pre class="mb-0" style="background: transparent; border: none; padding: 0; margin: 0;">
+<code id="codeOutput" class="code-output" readonly 
+    style="display: block; height: 420px; font-size: 13px; background: transparent; color: #e9ecef; border-radius: 0.5rem; border: none; font-family: 'Fira Mono', 'Consolas', 'Courier New', monospace; overflow-y: auto; resize: vertical; box-shadow: none; padding: 1rem; white-space: pre;">
+</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Blockly Toolbox Definition -->
+    <xml id="toolbox" style="display: none">
+        <category name="🔄 Logic" colour="210">
+            <block type="controls_if"></block>
+            <block type="logic_compare"></block>
+            <block type="logic_operation"></block>
+            <block type="logic_negate"></block>
+            <block type="logic_boolean"></block>
+        </category>
+        
+        <category name="🔁 Loops" colour="120">
+            <block type="controls_repeat_ext"></block>
+            <block type="controls_whileUntil"></block>
+            <block type="controls_for"></block>
+        </category>
+        
+        <category name="🔢 Math" colour="230">
+            <block type="math_number"></block>
+            <block type="math_arithmetic"></block>
+            <block type="math_single"></block>
+            <block type="math_random_int"></block>
+        </category>
+        
+        <category name="📝 Text" colour="160">
+            <block type="text"></block>
+            <block type="text_join"></block>
+            <block type="text_print"></block>
+        </category>
+        
+        <category name="📋 Variables" colour="330" custom="VARIABLE"></category>
+        
+        <category name="🔧 Pico Basics" colour="65">
+            <block type="pico_import"></block>
+            <block type="pico_pin_setup"></block>
+            <block type="pico_digital_write"></block>
+            <block type="pico_digital_read"></block>
+            <block type="pico_delay"></block>
+        </category>
+        
+        <category name="💡 LED Control" colour="45">
+            <block type="pico_led_on"></block>
+            <block type="pico_led_off"></block>
+            <block type="pico_led_toggle"></block>
+            <block type="pico_led_blink"></block>
+        </category>
+        
+        <category name="🔘 Input/Output" colour="85">
+            <block type="pico_button_read"></block>
+            <block type="pico_adc_read"></block>
+            <block type="pico_pwm_setup"></block>
+            <block type="pico_pwm_write"></block>
+        </category>
+        
+        <category name="🌡️ Sensors" colour="195">
+            <block type="pico_dht22_read"></block>
+            <block type="pico_ultrasonic_read"></block>
+            <block type="pico_i2c_setup"></block>
+        </category>
+        
+        <category name="🎮 Advanced" colour="285">
+            <block type="pico_servo_setup"></block>
+            <block type="pico_servo_write"></block>
+            <block type="pico_neopixel_setup"></block>
+            <block type="pico_neopixel_color"></block>
+        </category>
+    </xml>
+
+    <!-- Blockly and Bootstrap JS -->
+    <script src="https://unpkg.com/blockly@10.4.3/blockly_compressed.js"></script>
+    <script src="https://unpkg.com/blockly@10.4.3/blocks_compressed.js"></script>
+    <script src="https://unpkg.com/blockly@10.4.3/python_compressed.js"></script>
+    <script src="https://unpkg.com/blockly@10.4.3/msg/en.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Pin information database
+        const pinInfo = {
+            'GP0': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'SPI0 RX', 'I2C0 SDA', 'UART0 TX'], color: '#b8860b' },
+            'GP1': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'SPI0 CSn', 'I2C0 SCL', 'UART0 RX'], color: '#b8860b' },
+            'GP2': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'SPI0 SCK', 'I2C1 SDA', 'UART0 CTS'], color: '#b8860b' },
+            'GP3': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'SPI0 TX', 'I2C1 SCL', 'UART0 RTS'], color: '#b8860b' },
+            'GP4': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'SPI0 RX', 'I2C0 SDA', 'UART1 TX'], color: '#b8860b' },
+            'GP5': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'SPI0 CSn', 'I2C0 SCL', 'UART1 RX'], color: '#b8860b' },
+            'GP6': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'SPI0 SCK', 'I2C1 SDA', 'UART1 CTS'], color: '#b8860b' },
+            'GP7': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'SPI0 TX', 'I2C1 SCL', 'UART1 RTS'], color: '#b8860b' },
+            'GP8': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'SPI1 RX', 'I2C0 SDA', 'UART1 TX'], color: '#b8860b' },
+            'GP9': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'SPI1 CSn', 'I2C0 SCL', 'UART1 RX'], color: '#b8860b' },
+            'GP10': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'SPI1 SCK', 'I2C1 SDA', 'UART1 CTS'], color: '#b8860b' },
+            'GP11': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'SPI1 TX', 'I2C1 SCL', 'UART1 RTS'], color: '#b8860b' },
+            'GP12': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'SPI1 RX', 'I2C0 SDA', 'UART0 TX'], color: '#b8860b' },
+            'GP13': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'SPI1 CSn', 'I2C0 SCL', 'UART0 RX'], color: '#b8860b' },
+            'GP14': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'SPI1 SCK', 'I2C1 SDA', 'UART0 CTS'], color: '#b8860b' },
+            'GP15': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'SPI1 TX', 'I2C1 SCL', 'UART0 RTS'], color: '#b8860b' },
+            'GP16': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'SPI0 RX', 'I2C0 SDA', 'UART0 TX'], color: '#b8860b' },
+            'GP17': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'SPI0 CSn', 'I2C0 SCL', 'UART0 RX'], color: '#b8860b' },
+            'GP18': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'SPI0 SCK', 'I2C1 SDA', 'UART0 CTS'], color: '#b8860b' },
+            'GP19': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'SPI0 TX', 'I2C1 SCL', 'UART0 RTS'], color: '#b8860b' },
+            'GP20': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'SPI0 RX', 'I2C0 SDA', 'UART1 TX'], color: '#b8860b' },
+            'GP21': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'SPI0 CSn', 'I2C0 SCL', 'UART1 RX'], color: '#b8860b' },
+            'GP22': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'SPI0 SCK', 'I2C1 SDA', 'UART1 CTS'], color: '#b8860b' },
+            'GP25': { type: 'GPIO', functions: ['Digital I/O', 'PWM', 'Built-in LED'], color: '#ff8c00' },
+            'GP26': { type: 'ADC', functions: ['Digital I/O', 'PWM', 'ADC0', 'I2C1 SDA'], color: '#4169e1' },
+            'GP27': { type: 'ADC', functions: ['Digital I/O', 'PWM', 'ADC1', 'I2C1 SCL'], color: '#4169e1' },
+            'GP28': { type: 'ADC', functions: ['Digital I/O', 'PWM', 'ADC2', 'I2C0 SDA'], color: '#4169e1' },
+            'VBUS': { type: 'Power', functions: ['5V USB Power Output'], color: '#dc143c' },
+            'VSYS': { type: 'Power', functions: ['System Power (2-5V)'], color: '#dc143c' },
+            '3V3': { type: 'Power', functions: ['3.3V Power Output'], color: '#dc143c' },
+            '3V3_EN': { type: 'Power', functions: ['3.3V Enable/Disable'], color: '#dc143c' },
+            'ADC_VREF': { type: 'Reference', functions: ['ADC Reference Voltage'], color: '#8fbc8f' },
+            'GND': { type: 'Ground', functions: ['Ground/0V'], color: '#666' },
+            'AGND': { type: 'Ground', functions: ['Analog Ground'], color: '#666' },
+            'RUN': { type: 'Control', functions: ['Reset Pin (Active Low)'], color: '#666' }
+        };
+
+        // Filter pins by type
+        function filterPinsByType(type) {
+            const pinHoles = document.querySelectorAll('.pin-hole');
+            
+            pinHoles.forEach(pin => {
+                const pinName = pin.dataset.pin;
+                const info = pinInfo[pinName];
+                
+                if (type === 'all' || (info && info.type === type)) {
+                    pin.style.opacity = '1';
+                    pin.style.pointerEvents = 'auto';
+                    pin.style.filter = 'none';
+                } else {
+                    pin.style.opacity = '0.2';
+                    pin.style.pointerEvents = 'none';
+                    pin.style.filter = 'grayscale(100%)';
+                }
+            });
+            
+            // Update pin info if a filtered pin is currently selected
+            const selectedPin = document.querySelector('.pin-hole.selected');
+            if (selectedPin && selectedPin.style.opacity === '0.2') {
+                const pinInfoDiv = document.getElementById('pin-info');
+                pinInfoDiv.className = 'pin-info empty';
+                pinInfoDiv.innerHTML = '<small>Click on a visible pin to see its capabilities</small>';
+                selectedPin.classList.remove('selected');
+            }
+        }
+
+        // Select a specific pin programmatically
+        function selectPin(pinName) {
+            const pinElement = document.querySelector(`[data-pin="${pinName}"]`);
+            if (pinElement) {
+                pinElement.click();
+                pinElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+                console.warn(`Pin ${pinName} not found`);
+            }
+        }
+
+        // Initialize pin selector
+        function initPinSelector() {
+            const pinHoles = document.querySelectorAll('.pin-hole');
+            const pinInfoDiv = document.getElementById('pin-info');
+            
+            pinHoles.forEach(pin => {
+                pin.addEventListener('click', function() {
+                    // Remove previous selection
+                    pinHoles.forEach(p => p.classList.remove('selected'));
+                    
+                    // Select current pin
+                    this.classList.add('selected');
+                    
+                    // Get pin info
+                    const pinName = this.dataset.pin;
+                    const info = pinInfo[pinName];
+                    
+                    if (info) {
+                        pinInfoDiv.className = 'pin-info';
+                        pinInfoDiv.style.background = `linear-gradient(135deg, ${info.color}, ${info.color}aa)`;
+                        pinInfoDiv.innerHTML = `
+                            <div>
+                                <strong style="font-size: 16px;">${pinName}</strong><br>
+                                <span style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 10px; font-size: 11px;">${info.type}</span><br>
+                                <small style="margin-top: 8px; display: block; line-height: 1.3;">
+                                    ${info.functions.map(func => `• ${func}`).join('<br>')}
+                                </small>
+                            </div>
+                        `;
+                    } else {
+                        // Default info for unknown pins
+                        pinInfoDiv.className = 'pin-info';
+                        pinInfoDiv.style.background = 'linear-gradient(135deg, #666, #666aa)';
+                        pinInfoDiv.innerHTML = `
+                            <div>
+                                <strong style="font-size: 16px;">${pinName}</strong><br>
+                                <small>No detailed information available</small>
+                            </div>
+                        `;
+                    }
+                });
+                
+                // Enhanced hover effects
+                pin.addEventListener('mouseenter', function() {
+                    if (!this.classList.contains('selected')) {
+                        const pinName = this.dataset.pin;
+                        const info = pinInfo[pinName];
+                        
+                        // Show temporary hover info
+                        if (info && !pinInfoDiv.querySelector('.temp-hover')) {
+                            const tempDiv = document.createElement('div');
+                            tempDiv.className = 'temp-hover';
+                            tempDiv.style.cssText = `
+                                position: absolute;
+                                background: rgba(0,0,0,0.8);
+                                color: white;
+                                padding: 4px 8px;
+                                border-radius: 4px;
+                                font-size: 10px;
+                                pointer-events: none;
+                                z-index: 1000;
+                                top: -25px;
+                                left: 50%;
+                                transform: translateX(-50%);
+                                white-space: nowrap;
+                            `;
+                            tempDiv.textContent = `${pinName} - ${info.type}`;
+                            this.style.position = 'relative';
+                            this.appendChild(tempDiv);
+                        }
+                    }
+                });
+                
+                pin.addEventListener('mouseleave', function() {
+                    // Remove temporary hover info
+                    const tempDiv = this.querySelector('.temp-hover');
+                    if (tempDiv) {
+                        tempDiv.remove();
+                    }
+                });
+            });
+            
+            // Add keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                const selectedPin = document.querySelector('.pin-hole.selected');
+                if (!selectedPin) return;
+                
+                const allPins = Array.from(pinHoles);
+                const currentIndex = allPins.indexOf(selectedPin);
+                
+                let nextIndex;
+                switch(e.key) {
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        nextIndex = currentIndex > 0 ? currentIndex - 1 : allPins.length - 1;
+                        break;
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        nextIndex = currentIndex < allPins.length - 1 ? currentIndex + 1 : 0;
+                        break;
+                    default:
+                        return;
+                }
+                
+                if (nextIndex !== undefined) {
+                    allPins[nextIndex].click();
+                    allPins[nextIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+        }
+
+        let workspace;
+
+        // Initialize Blockly workspace
+        function initBlockly() {
+            workspace = Blockly.inject('blocklyArea', {
+                toolbox: document.getElementById('toolbox'),
+                grid: {
+                    spacing: 20,
+                    length: 3,
+                    colour: '#ccc',
+                    snap: true
+                },
+                zoom: {
+                    controls: true,
+                    wheel: true,
+                    startScale: 1.0,
+                    maxScale: 3,
+                    minScale: 0.3,
+                    scaleSpeed: 1.2
+                },
+                trashcan: true,
+                sounds: false
+            });
+
+            // Auto-generate code when workspace changes
+            workspace.addChangeListener(function(event) {
+                if (event.type !== Blockly.Events.UI) {
+                    generateCode();
+                }
+            });
+        }
+
+        // Define custom Pico blocks
+        function defineCustomBlocks() {
+            // Pico Import Block
+            Blockly.Blocks['pico_import'] = {
+                init: function() {
+                    this.appendDummyInput()
+                        .appendField("📦 Import Pico modules");
+                    this.setNextStatement(true, null);
+                    this.setColour(65);
+                    this.setTooltip("Import necessary modules for Pico");
+                }
+            };
+
+            Blockly.Python['pico_import'] = function(block) {
+                return 'from machine import Pin, PWM, ADC, I2C\nimport time\nimport dht\n\n';
+            };
+
+            // Pin Setup Block
+            Blockly.Blocks['pico_pin_setup'] = {
+                init: function() {
+                    this.appendDummyInput()
+                        .appendField("🔌 Setup pin")
+                        .appendField(new Blockly.FieldNumber(25, 0, 28), "PIN")
+                        .appendField("as")
+                        .appendField(new Blockly.FieldDropdown([
+                            ["OUTPUT", "Pin.OUT"],
+                            ["INPUT", "Pin.IN"],
+                            ["INPUT_PULLUP", "Pin.IN, Pin.PULL_UP"]
+                        ]), "MODE")
+                        .appendField("named")
+                        .appendField(new Blockly.FieldTextInput("pin"), "VAR");
+                    this.setNextStatement(true, null);
+                    this.setPreviousStatement(true, null);
+                    this.setColour(65);
+                }
+            };
+
+            Blockly.Python['pico_pin_setup'] = function(block) {
+                const pin = block.getFieldValue('PIN');
+                const mode = block.getFieldValue('MODE');
+                const varName = block.getFieldValue('VAR');
+                return `${varName} = Pin(${pin}, ${mode})\n`;
+            };
+
+            // Digital Write Block
+            Blockly.Blocks['pico_digital_write'] = {
+                init: function() {
+                    this.appendValueInput("VALUE")
+                        .setCheck("Boolean")
+                        .appendField("🔌 Set pin")
+                        .appendField(new Blockly.FieldTextInput("pin"), "PIN")
+                        .appendField("to");
+                    this.setPreviousStatement(true, null);
+                    this.setNextStatement(true, null);
+                    this.setColour(65);
+                }
+            };
+
+            Blockly.Python['pico_digital_write'] = function(block) {
+                const pin = block.getFieldValue('PIN');
+                const value = Blockly.Python.valueToCode(block, 'VALUE', Blockly.Python.ORDER_ATOMIC) || 'False';
+                const pythonValue = value === 'True' ? '1' : '0';
+                return `${pin}.value(${pythonValue})\n`;
+            };
+
+            // Digital Read Block
+            Blockly.Blocks['pico_digital_read'] = {
+                init: function() {
+                    this.appendDummyInput()
+                        .appendField("🔌 Read pin")
+                        .appendField(new Blockly.FieldTextInput("pin"), "PIN");
+                    this.setOutput(true, "Boolean");
+                    this.setColour(65);
+                }
+            };
+
+            Blockly.Python['pico_digital_read'] = function(block) {
+                const pin = block.getFieldValue('PIN');
+                return [`${pin}.value()`, Blockly.Python.ORDER_FUNCTION_CALL];
+            };
+
+            // Delay Block
+            Blockly.Blocks['pico_delay'] = {
+                init: function() {
+                    this.appendValueInput("TIME")
+                        .setCheck("Number")
+                        .appendField("⏱️ Wait");
+                    this.appendDummyInput()
+                        .appendField(new Blockly.FieldDropdown([
+                            ["seconds", "time.sleep"],
+                            ["milliseconds", "time.sleep_ms"]
+                        ]), "UNIT");
+                    this.setPreviousStatement(true, null);
+                    this.setNextStatement(true, null);
+                    this.setColour(65);
+                }
+            };
+
+            Blockly.Python['pico_delay'] = function(block) {
+                const time = Blockly.Python.valueToCode(block, 'TIME', Blockly.Python.ORDER_ATOMIC) || '1';
+                const unit = block.getFieldValue('UNIT');
+                return `${unit}(${time})\n`;
+            };
+
+            // LED On Block
+            Blockly.Blocks['pico_led_on'] = {
+                init: function() {
+                    this.appendDummyInput()
+                        .appendField("💡 Turn LED ON (pin 25)");
+                    this.setPreviousStatement(true, null);
+                    this.setNextStatement(true, null);
+                    this.setColour(45);
+                }
+            };
+
+            Blockly.Python['pico_led_on'] = function(block) {
+                return 'led = Pin(25, Pin.OUT)\nled.on()\n';
+            };
+
+            // LED Off Block
+            Blockly.Blocks['pico_led_off'] = {
+                init: function() {
+                    this.appendDummyInput()
+                        .appendField("💡 Turn LED OFF (pin 25)");
+                    this.setPreviousStatement(true, null);
+                    this.setNextStatement(true, null);
+                    this.setColour(45);
+                }
+            };
+
+            Blockly.Python['pico_led_off'] = function(block) {
+                return 'led = Pin(25, Pin.OUT)\nled.off()\n';
+            };
+
+            // LED Toggle Block
+            Blockly.Blocks['pico_led_toggle'] = {
+                init: function() {
+                    this.appendDummyInput()
+                        .appendField("💡 Toggle LED (pin 25)");
+                    this.setPreviousStatement(true, null);
+                    this.setNextStatement(true, null);
+                    this.setColour(45);
+                }
+            };
+
+            Blockly.Python['pico_led_toggle'] = function(block) {
+                return 'led = Pin(25, Pin.OUT)\nled.toggle()\n';
+            };
+
+            // LED Blink Block
+            Blockly.Blocks['pico_led_blink'] = {
+                init: function() {
+                    this.appendValueInput("TIMES")
+                        .setCheck("Number")
+                        .appendField("💡 Blink LED");
+                    this.appendValueInput("DELAY")
+                        .setCheck("Number")
+                        .appendField("times, delay");
+                    this.appendDummyInput()
+                        .appendField("seconds");
+                    this.setPreviousStatement(true, null);
+                    this.setNextStatement(true, null);
+                    this.setColour(45);
+                }
+            };
+
+            Blockly.Python['pico_led_blink'] = function(block) {
+                const times = Blockly.Python.valueToCode(block, 'TIMES', Blockly.Python.ORDER_ATOMIC) || '1';
+                const delay = Blockly.Python.valueToCode(block, 'DELAY', Blockly.Python.ORDER_ATOMIC) || '0.5';
+                return `led = Pin(25, Pin.OUT)\nfor _ in range(${times}):\n    led.on()\n    time.sleep(${delay})\n    led.off()\n    time.sleep(${delay})\n`;
+            };
+
+            // Button Read Block
+            Blockly.Blocks['pico_button_read'] = {
+                init: function() {
+                    this.appendDummyInput()
+                        .appendField("🔘 Button pressed on pin")
+                        .appendField(new Blockly.FieldNumber(14, 0, 28), "PIN");
+                    this.setOutput(true, "Boolean");
+                    this.setColour(85);
+                }
+            };
+
+            Blockly.Python['pico_button_read'] = function(block) {
+                const pin = block.getFieldValue('PIN');
+                return [`not Pin(${pin}, Pin.IN, Pin.PULL_UP).value()`, Blockly.Python.ORDER_LOGICAL_NOT];
+            };
+
+            // ADC Read Block
+            Blockly.Blocks['pico_adc_read'] = {
+                init: function() {
+                    this.appendDummyInput()
+                        .appendField("📊 Read analog pin")
+                        .appendField(new Blockly.FieldDropdown([
+                            ["26 (ADC0)", "0"],
+                            ["27 (ADC1)", "1"],
+                            ["28 (ADC2)", "2"]
+                        ]), "PIN");
+                    this.setOutput(true, "Number");
+                    this.setColour(85);
+                }
+            };
+
+            Blockly.Python['pico_adc_read'] = function(block) {
+                const pin = block.getFieldValue('PIN');
+                return [`ADC(${pin}).read_u16()`, Blockly.Python.ORDER_FUNCTION_CALL];
+            };
+
+            // PWM Setup Block
+            Blockly.Blocks['pico_pwm_setup'] = {
+                init: function() {
+                    this.appendDummyInput()
+                        .appendField("📊 Setup PWM on pin")
+                        .appendField(new Blockly.FieldNumber(0, 0, 28), "PIN")
+                        .appendField("frequency")
+                        .appendField(new Blockly.FieldNumber(1000), "FREQ")
+                        .appendField("Hz, name")
+                        .appendField(new Blockly.FieldTextInput("pwm"), "VAR");
+                    this.setNextStatement(true, null);
+                    this.setPreviousStatement(true, null);
+                    this.setColour(85);
+                }
+            };
+
+            Blockly.Python['pico_pwm_setup'] = function(block) {
+                const pin = block.getFieldValue('PIN');
+                const freq = block.getFieldValue('FREQ');
+                const varName = block.getFieldValue('VAR');
+                return `${varName} = PWM(Pin(${pin}))\n${varName}.freq(${freq})\n`;
+            };
+
+            // PWM Write Block
+            Blockly.Blocks['pico_pwm_write'] = {
+                init: function() {
+                    this.appendValueInput("VALUE")
+                        .setCheck("Number")
+                        .appendField("📊 Set PWM")
+                        .appendField(new Blockly.FieldTextInput("pwm"), "PWM")
+                        .appendField("duty cycle to");
+                    this.appendDummyInput()
+                        .appendField("% (0-100)");
+                    this.setPreviousStatement(true, null);
+                    this.setNextStatement(true, null);
+                    this.setColour(85);
+                }
+            };
+
+            Blockly.Python['pico_pwm_write'] = function(block) {
+                const pwm = block.getFieldValue('PWM');
+                const value = Blockly.Python.valueToCode(block, 'VALUE', Blockly.Python.ORDER_ATOMIC) || '50';
+                return `${pwm}.duty_u16(int(${value} * 655.35))\n`;
+            };
+
+            // DHT22 Read Block
+            Blockly.Blocks['pico_dht22_read'] = {
+                init: function() {
+                    this.appendDummyInput()
+                        .appendField("🌡️ Read DHT22 sensor on pin")
+                        .appendField(new Blockly.FieldNumber(2, 0, 28), "PIN")
+                        .appendField("get")
+                        .appendField(new Blockly.FieldDropdown([
+                            ["temperature", "temperature"],
+                            ["humidity", "humidity"]
+                        ]), "TYPE");
+                    this.setOutput(true, "Number");
+                    this.setColour(195);
+                }
+            };
+
+            Blockly.Python['pico_dht22_read'] = function(block) {
+                const pin = block.getFieldValue('PIN');
+                const type = block.getFieldValue('TYPE');
+                return [`dht.DHT22(Pin(${pin})).${type}()`, Blockly.Python.ORDER_FUNCTION_CALL];
+            };
+
+            // Ultrasonic Read Block
+            Blockly.Blocks['pico_ultrasonic_read'] = {
+                init: function() {
+                    this.appendDummyInput()
+                        .appendField("📏 Read HC-SR04 distance")
+                        .appendField("trigger pin")
+                        .appendField(new Blockly.FieldNumber(16, 0, 28), "TRIG")
+                        .appendField("echo pin")
+                        .appendField(new Blockly.FieldNumber(17, 0, 28), "ECHO");
+                    this.setOutput(true, "Number");
+                    this.setColour(195);
+                }
+            };
+
+            Blockly.Python['pico_ultrasonic_read'] = function(block) {
+                const trig = block.getFieldValue('TRIG');
+                const echo = block.getFieldValue('ECHO');
+                return [`ultrasonic_distance(Pin(${trig}, Pin.OUT), Pin(${echo}, Pin.IN))`, Blockly.Python.ORDER_FUNCTION_CALL];
+            };
+
+            // I2C Setup Block
+            Blockly.Blocks['pico_i2c_setup'] = {
+                init: function() {
+                    this.appendDummyInput()
+                        .appendField("🔗 Setup I2C")
+                        .appendField("SDA pin")
+                        .appendField(new Blockly.FieldNumber(16, 0, 28), "SDA")
+                        .appendField("SCL pin")
+                        .appendField(new Blockly.FieldNumber(17, 0, 28), "SCL")
+                        .appendField("name")
+                        .appendField(new Blockly.FieldTextInput("i2c"), "VAR");
+                    this.setNextStatement(true, null);
+                    this.setPreviousStatement(true, null);
+                    this.setColour(195);
+                }
+            };
+
+            Blockly.Python['pico_i2c_setup'] = function(block) {
+                const sda = block.getFieldValue('SDA');
+                const scl = block.getFieldValue('SCL');
+                const varName = block.getFieldValue('VAR');
+                return `${varName} = I2C(0, sda=Pin(${sda}), scl=Pin(${scl}), freq=100000)\n`;
+            };
+
+            // Servo Setup Block
+            Blockly.Blocks['pico_servo_setup'] = {
+                init: function() {
+                    this.appendDummyInput()
+                        .appendField("🎮 Setup servo on pin")
+                        .appendField(new Blockly.FieldNumber(0, 0, 28), "PIN")
+                        .appendField("name")
+                        .appendField(new Blockly.FieldTextInput("servo"), "VAR");
+                    this.setNextStatement(true, null);
+                    this.setPreviousStatement(true, null);
+                    this.setColour(285);
+                }
+            };
+
+            Blockly.Python['pico_servo_setup'] = function(block) {
+                const pin = block.getFieldValue('PIN');
+                const varName = block.getFieldValue('VAR');
+                return `${varName} = PWM(Pin(${pin}))\n${varName}.freq(50)\n`;
+            };
+
+            // Servo Write Block
+            Blockly.Blocks['pico_servo_write'] = {
+                init: function() {
+                    this.appendValueInput("ANGLE")
+                        .setCheck("Number")
+                        .appendField("🎮 Set servo")
+                        .appendField(new Blockly.FieldTextInput("servo"), "SERVO")
+                        .appendField("to angle");
+                    this.appendDummyInput()
+                        .appendField("degrees (0-180)");
+                    this.setPreviousStatement(true, null);
+                    this.setNextStatement(true, null);
+                    this.setColour(285);
+                }
+            };
+
+            Blockly.Python['pico_servo_write'] = function(block) {
+                const servo = block.getFieldValue('SERVO');
+                const angle = Blockly.Python.valueToCode(block, 'ANGLE', Blockly.Python.ORDER_ATOMIC) || '90';
+                return `${servo}.duty_u16(int(1500 + (${angle} - 90) * 11.11))\n`;
+            };
+
+            // NeoPixel Setup Block
+            Blockly.Blocks['pico_neopixel_setup'] = {
+                init: function() {
+                    this.appendDummyInput()
+                        .appendField("🌈 Setup NeoPixels on pin")
+                        .appendField(new Blockly.FieldNumber(0, 0, 28), "PIN")
+                        .appendField("count")
+                        .appendField(new Blockly.FieldNumber(1), "COUNT")
+                        .appendField("name")
+                        .appendField(new Blockly.FieldTextInput("pixels"), "VAR");
+                    this.setNextStatement(true, null);
+                    this.setPreviousStatement(true, null);
+                    this.setColour(285);
+                }
+            };
+
+            Blockly.Python['pico_neopixel_setup'] = function(block) {
+                const pin = block.getFieldValue('PIN');
+                const count = block.getFieldValue('COUNT');
+                const varName = block.getFieldValue('VAR');
+                return `import neopixel\n${varName} = neopixel.NeoPixel(Pin(${pin}), ${count})\n`;
+            };
+
+            // NeoPixel Color Block
+            Blockly.Blocks['pico_neopixel_color'] = {
+                init: function() {
+                    this.appendValueInput("INDEX")
+                        .setCheck("Number")
+                        .appendField("🌈 Set NeoPixel")
+                        .appendField(new Blockly.FieldTextInput("pixels"), "PIXELS")
+                        .appendField("index");
+                    this.appendValueInput("RED")
+                        .setCheck("Number")
+                        .appendField("to color R");
+                    this.appendValueInput("GREEN")
+                        .setCheck("Number")
+                        .appendField("G");
+                    this.appendValueInput("BLUE")
+                        .setCheck("Number")
+                        .appendField("B");
+                    this.setPreviousStatement(true, null);
+                    this.setNextStatement(true, null);
+                    this.setColour(285);
+                }
+            };
+
+            Blockly.Python['pico_neopixel_color'] = function(block) {
+                const pixels = block.getFieldValue('PIXELS');
+                const index = Blockly.Python.valueToCode(block, 'INDEX', Blockly.Python.ORDER_ATOMIC) || '0';
+                const red = Blockly.Python.valueToCode(block, 'RED', Blockly.Python.ORDER_ATOMIC) || '0';
+                const green = Blockly.Python.valueToCode(block, 'GREEN', Blockly.Python.ORDER_ATOMIC) || '0';
+                const blue = Blockly.Python.valueToCode(block, 'BLUE', Blockly.Python.ORDER_ATOMIC) || '0';
+                return `${pixels}[${index}] = (${red}, ${green}, ${blue})\n${pixels}.write()\n`;
+            };
+        }
+
+        // Generate MicroPython code
+        function generateCode() {
+            if (typeof Blockly === 'undefined' || !Blockly.Python || !workspace) return;
+            let code = Blockly.Python.workspaceToCode(workspace);
+            // Remove trailing whitespace and empty lines
+            code = code.replace(/[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n').trim();
+            // Set code in <code> block
+            const codeElem = document.getElementById('codeOutput');
+            if (codeElem) {
+                codeElem.textContent = code;
+            }
+        }
+
+        // Clear workspace
+        function clearWorkspace() {
+            if (!workspace) {
+                alert('Workspace not initialized yet.');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to clear the workspace?')) {
+                workspace.clear();
+            }
+        }
+
+        // Copy code to clipboard
+        function copyToClipboard() {
+            const codeElem = document.getElementById('codeOutput');
+            let code = codeElem.innerText || codeElem.value || '';
+            if (!code) return;
+            navigator.clipboard.writeText(code);
+            const btn = document.getElementById('copyBtn');
+            if (btn) {
+                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                btn.classList.remove('btn-outline-warning');
+                btn.classList.add('btn-success');
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fas fa-copy"></i> <span class="d-none d-md-inline">Copy</span>';
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-outline-warning');
+                }, 1200);
+            }
+        }
+
+        // Download code as .py file
+        function downloadCode() {
+            const code = document.getElementById('codeOutput').textContent;
+            if (!code.trim()) {
+                alert('No code to download. Please create some blocks first.');
+                return;
+            }
+            
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'pico_program.py';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Load example programs
+        function loadExample(type) {
+            if (!workspace) {
+                alert('Workspace not initialized yet.');
+                return;
+            }
+            
+            clearWorkspace();
+            
+            let xml;
+            switch(type) {
+                case 'blink':
+                    xml = `<xml>
+                        <block type="pico_import" x="20" y="20">
+                            <next>
+                                <block type="controls_repeat_ext">
+                                    <value name="TIMES">
+                                        <block type="math_number">
+                                            <field name="NUM">10</field>
+                                        </block>
+                                    </value>
+                                    <statement name="DO">
+                                        <block type="pico_led_on">
+                                            <next>
+                                                <block type="pico_delay">
+                                                    <value name="TIME">
+                                                        <block type="math_number">
+                                                            <field name="NUM">0.5</field>
+                                                        </block>
+                                                    </value>
+                                                    <next>
+                                                        <block type="pico_led_off">
+                                                            <next>
+                                                                <block type="pico_delay">
+                                                                    <value name="TIME">
+                                                                        <block type="math_number">
+                                                                            <field name="NUM">0.5</field>
+                                                                        </block>
+                                                                    </value>
+                                                                </block>
+                                                            </next>
+                                                        </block>
+                                                    </next>
+                                                </block>
+                                            </next>
+                                        </block>
+                                    </statement>
+                                </block>
+                            </next>
+                        </block>
+                    </xml>`;
+                    break;
+                    
+                case 'button':
+                    xml = `<xml>
+                        <block type="pico_import" x="20" y="20">
+                            <next>
+                                <block type="controls_whileUntil">
+                                    <field name="MODE">WHILE</field>
+                                    <value name="BOOL">
+                                        <block type="logic_boolean">
+                                            <field name="BOOL">TRUE</field>
+                                        </block>
+                                    </value>
+                                    <statement name="DO">
+                                        <block type="controls_if">
+                                            <value name="IF0">
+                                                <block type="pico_button_read">
+                                                    <field name="PIN">14</field>
+                                                </block>
+                                            </value>
+                                            <statement name="DO0">
+                                                <block type="pico_led_on">
+                                                    <next>
+                                                        <block type="text_print">
+                                                            <value name="TEXT">
+                                                                <block type="text">
+                                                                    <field name="TEXT">Button pressed!</field>
+                                                                </block>
+                                                            </value>
+                                                        </block>
+                                                    </next>
+                                                </block>
+                                            </statement>
+                                            <next>
+                                                <block type="pico_delay">
+                                                    <value name="TIME">
+                                                        <block type="math_number">
+                                                            <field name="NUM">100</field>
+                                                        </block>
+                                                    </value>
+                                                    <field name="UNIT">time.sleep_ms</field>
+                                                </block>
+                                            </next>
+                                        </block>
+                                    </statement>
+                                </block>
+                            </next>
+                        </block>
+                    </xml>`;
+                    break;
+                    
+                case 'sensor':
+                    xml = `<xml>
+                        <block type="pico_import" x="20" y="20">
+                            <next>
+                                <block type="controls_whileUntil">
+                                    <field name="MODE">WHILE</field>
+                                    <value name="BOOL">
+                                        <block type="logic_boolean">
+                                            <field name="BOOL">TRUE</field>
+                                        </block>
+                                    </value>
+                                    <statement name="DO">
+                                        <block type="text_print">
+                                            <value name="TEXT">
+                                                <block type="text_join">
+                                                    <mutation items="3"></mutation>
+                                                    <value name="ADD0">
+                                                        <block type="text">
+                                                            <field name="TEXT">Temperature: </field>
+                                                        </block>
+                                                    </value>
+                                                    <value name="ADD1">
+                                                        <block type="pico_dht22_read">
+                                                            <field name="PIN">2</field>
+                                                            <field name="TYPE">temperature</field>
+                                                        </block>
+                                                    </value>
+                                                    <value name="ADD2">
+                                                        <block type="text">
+                                                            <field name="TEXT">°C</field>
+                                                        </block>
+                                                    </value>
+                                                </block>
+                                            </value>
+                                            <next>
+                                                <block type="pico_delay">
+                                                    <value name="TIME">
+                                                        <block type="math_number">
+                                                            <field name="NUM">2</field>
+                                                        </block>
+                                                    </value>
+                                                </block>
+                                            </next>
+                                        </block>
+                                    </statement>
+                                </block>
+                            </next>
+                        </block>
+                    </xml>`;
+                    break;
+                    
+                case 'pwm':
+                    xml = `<xml>
+                        <block type="pico_import" x="20" y="20">
+                            <next>
+                                <block type="pico_pwm_setup">
+                                    <field name="PIN">0</field>
+                                    <field name="FREQ">1000</field>
+                                    <field name="VAR">motor_pwm</field>
+                                    <next>
+                                        <block type="controls_for">
+                                            <field name="VAR">i</field>
+                                            <value name="FROM">
+                                                <block type="math_number">
+                                                    <field name="NUM">0</field>
+                                                </block>
+                                            </value>
+                                            <value name="TO">
+                                                <block type="math_number">
+                                                    <field name="NUM">100</field>
+                                                </block>
+                                            </value>
+                                            <value name="BY">
+                                                <block type="math_number">
+                                                    <field name="NUM">10</field>
+                                                </block>
+                                            </value>
+                                            <statement name="DO">
+                                                <block type="pico_pwm_write">
+                                                    <field name="PWM">motor_pwm</field>
+                                                    <value name="VALUE">
+                                                        <block type="variables_get">
+                                                            <field name="VAR">i</field>
+                                                        </block>
+                                                    </value>
+                                                    <next>
+                                                        <block type="pico_delay">
+                                                            <value name="TIME">
+                                                                <block type="math_number">
+                                                                    <field name="NUM">0.1</field>
+                                                                </block>
+                                                            </value>
+                                                        </block>
+                                                    </next>
+                                                </block>
+                                            </statement>
+                                        </block>
+                                    </next>
+                                </block>
+                            </next>
+                        </block>
+                    </xml>`;
+                    break;
+                    
+                case 'adc':
+                    xml = `<xml>
+                        <block type="pico_import" x="20" y="20">
+                            <next>
+                                <block type="controls_whileUntil">
+                                    <field name="MODE">WHILE</field>
+                                    <value name="BOOL">
+                                        <block type="logic_boolean">
+                                            <field name="BOOL">TRUE</field>
+                                        </block>
+                                    </value>
+                                    <statement name="DO">
+                                        <block type="text_print">
+                                            <value name="TEXT">
+                                                <block type="text_join">
+                                                    <mutation items="2"></mutation>
+                                                    <value name="ADD0">
+                                                        <block type="text">
+                                                            <field name="TEXT">ADC Value: </field>
+                                                        </block>
+                                                    </value>
+                                                    <value name="ADD1">
+                                                        <block type="pico_adc_read">
+                                                            <field name="PIN">0</field>
+                                                        </block>
+                                                    </value>
+                                                </block>
+                                            </value>
+                                            <next>
+                                                <block type="pico_delay">
+                                                    <value name="TIME">
+                                                        <block type="math_number">
+                                                            <field name="NUM">0.5</field>
+                                                        </block>
+                                                    </value>
+                                                </block>
+                                            </next>
+                                        </block>
+                                    </statement>
+                                </block>
+                            </next>
+                        </block>
+                    </xml>`;
+                    break;
+                    
+                case 'i2c':
+                    xml = `<xml>
+                        <block type="pico_import" x="20" y="20">
+                            <next>
+                                <block type="pico_i2c_setup">
+                                    <field name="SDA">16</field>
+                                    <field name="SCL">17</field>
+                                    <field name="VAR">i2c</field>
+                                    <next>
+                                        <block type="text_print">
+                                            <value name="TEXT">
+                                                <block type="text">
+                                                    <field name="TEXT">I2C initialized on pins 16 (SDA) and 17 (SCL)</field>
+                                                </block>
+                                            </value>
+                                        </block>
+                                    </next>
+                                </block>
+                            </next>
+                        </block>
+                    </xml>`;
+                    break;
+                    
+                case 'servo':
+                    xml = `<xml>
+                        <block type="pico_import" x="20" y="20">
+                            <next>
+                                <block type="pico_servo_setup">
+                                    <field name="PIN">0</field>
+                                    <field name="VAR">servo</field>
+                                    <next>
+                                        <block type="controls_repeat_ext">
+                                            <value name="TIMES">
+                                                <block type="math_number">
+                                                    <field name="NUM">5</field>
+                                                </block>
+                                            </value>
+                                            <statement name="DO">
+                                                <block type="pico_servo_write">
+                                                    <field name="SERVO">servo</field>
+                                                    <value name="ANGLE">
+                                                        <block type="math_number">
+                                                            <field name="NUM">0</field>
+                                                        </block>
+                                                    </value>
+                                                    <next>
+                                                        <block type="pico_delay">
+                                                            <value name="TIME">
+                                                                <block type="math_number">
+                                                                    <field name="NUM">1</field>
+                                                                </block>
+                                                            </value>
+                                                            <next>
+                                                                <block type="pico_servo_write">
+                                                                    <field name="SERVO">servo</field>
+                                                                    <value name="ANGLE">
+                                                                        <block type="math_number">
+                                                                            <field name="NUM">180</field>
+                                                                        </block>
+                                                                    </value>
+                                                                    <next>
+                                                                        <block type="pico_delay">
+                                                                            <value name="TIME">
+                                                                                <block type="math_number">
+                                                                                    <field name="NUM">1</field>
+                                                                                </block>
+                                                                            </value>
+                                                                        </block>
+                                                                    </next>
+                                                                </block>
+                                                            </next>
+                                                        </block>
+                                                    </next>
+                                                </block>
+                                            </statement>
+                                        </block>
+                                    </next>
+                                </block>
+                            </next>
+                        </block>
+                    </xml>`;
+                    break;
+                    
+                case 'neopixel':
+                    xml = `<xml>
+                        <block type="pico_import" x="20" y="20">
+                            <next>
+                                <block type="pico_neopixel_setup">
+                                    <field name="PIN">0</field>
+                                    <field name="COUNT">8</field>
+                                    <field name="VAR">pixels</field>
+                                    <next>
+                                        <block type="controls_repeat_ext">
+                                            <value name="TIMES">
+                                                <block type="math_number">
+                                                    <field name="NUM">10</field>
+                                                </block>
+                                            </value>
+                                            <statement name="DO">
+                                                <block type="pico_neopixel_color">
+                                                    <field name="PIXELS">pixels</field>
+                                                    <value name="INDEX">
+                                                        <block type="math_number">
+                                                            <field name="NUM">0</field>
+                                                        </block>
+                                                    </value>
+                                                    <value name="RED">
+                                                        <block type="math_number">
+                                                            <field name="NUM">255</field>
+                                                        </block>
+                                                    </value>
+                                                    <value name="GREEN">
+                                                        <block type="math_number">
+                                                            <field name="NUM">0</field>
+                                                        </block>
+                                                    </value>
+                                                    <value name="BLUE">
+                                                        <block type="math_number">
+                                                            <field name="NUM">0</field>
+                                                        </block>
+                                                    </value>
+                                                    <next>
+                                                        <block type="pico_delay">
+                                                            <value name="TIME">
+                                                                <block type="math_number">
+                                                                    <field name="NUM">0.5</field>
+                                                                </block>
+                                                            </value>
+                                                            <next>
+                                                                <block type="pico_neopixel_color">
+                                                                    <field name="PIXELS">pixels</field>
+                                                                    <value name="INDEX">
+                                                                        <block type="math_number">
+                                                                            <field name="NUM">0</field>
+                                                                        </block>
+                                                                    </value>
+                                                                    <value name="RED">
+                                                                        <block type="math_number">
+                                                                            <field name="NUM">0</field>
+                                                                        </block>
+                                                                    </value>
+                                                                    <value name="GREEN">
+                                                                        <block type="math_number">
+                                                                            <field name="NUM">0</field>
+                                                                        </block>
+                                                                    </value>
+                                                                    <value name="BLUE">
+                                                                        <block type="math_number">
+                                                                            <field name="NUM">255</field>
+                                                                        </block>
+                                                                    </value>
+                                                                    <next>
+                                                                        <block type="pico_delay">
+                                                                            <value name="TIME">
+                                                                                <block type="math_number">
+                                                                                    <field name="NUM">0.5</field>
+                                                                                </block>
+                                                                            </value>
+                                                                        </block>
+                                                                    </next>
+                                                                </block>
+                                                            </next>
+                                                        </block>
+                                                    </next>
+                                                </block>
+                                            </statement>
+                                        </block>
+                                    </next>
+                                </block>
+                            </next>
+                        </block>
+                    </xml>`;
+                    break;
+                    
+                case 'ultrasonic':
+                    xml = `<xml>
+                        <block type="pico_import" x="20" y="20">
+                            <next>
+                                <block type="controls_whileUntil">
+                                    <field name="MODE">WHILE</field>
+                                    <value name="BOOL">
+                                        <block type="logic_boolean">
+                                            <field name="BOOL">TRUE</field>
+                                        </block>
+                                    </value>
+                                    <statement name="DO">
+                                        <block type="text_print">
+                                            <value name="TEXT">
+                                                <block type="text_join">
+                                                    <mutation items="2"></mutation>
+                                                    <value name="ADD0">
+                                                        <block type="text">
+                                                            <field name="TEXT">Distance: </field>
+                                                        </block>
+                                                    </value>
+                                                    <value name="ADD1">
+                                                        <block type="pico_ultrasonic_read">
+                                                            <field name="TRIG">16</field>
+                                                            <field name="ECHO">17</field>
+                                                        </block>
+                                                    </value>
+                                                </block>
+                                            </value>
+                                            <next>
+                                                <block type="pico_delay">
+                                                    <value name="TIME">
+                                                        <block type="math_number">
+                                                            <field name="NUM">1</field>
+                                                        </block>
+                                                    </value>
+                                                </block>
+                                            </next>
+                                        </block>
+                                    </statement>
+                                </block>
+                            </next>
+                        </block>
+                    </xml>`;
+                    break;
+                    
+                case 'traffic_light':
+                    xml = `<xml>
+                        <block type="pico_import" x="20" y="20">
+                            <next>
+                                <block type="pico_pin_setup">
+                                    <field name="PIN">18</field>
+                                    <field name="MODE">Pin.OUT</field>
+                                    <field name="VAR">red</field>
+                                    <next>
+                                        <block type="pico_pin_setup">
+                                            <field name="PIN">19</field>
+                                            <field name="MODE">Pin.OUT</field>
+                                            <field name="VAR">yellow</field>
+                                            <next>
+                                                <block type="pico_pin_setup">
+                                                    <field name="PIN">20</field>
+                                                    <field name="MODE">Pin.OUT</field>
+                                                    <field name="VAR">green</field>
+                                                    <next>
+                                                        <block type="controls_repeat_ext">
+                                                            <value name="TIMES">
+                                                                <block type="math_number">
+                                                                    <field name="NUM">5</field>
+                                                                </block>
+                                                            </value>
+                                                            <statement name="DO">
+                                                                <block type="pico_digital_write">
+                                                                    <field name="PIN">red</field>
+                                                                    <value name="VALUE">
+                                                                        <block type="logic_boolean">
+                                                                            <field name="BOOL">TRUE</field>
+                                                                        </block>
+                                                                    </value>
+                                                                    <next>
+                                                                        <block type="pico_delay">
+                                                                            <value name="TIME">
+                                                                                <block type="math_number">
+                                                                                    <field name="NUM">2</field>
+                                                                                </block>
+                                                                            </value>
+                                                                            <next>
+                                                                                <block type="pico_digital_write">
+                                                                                    <field name="PIN">red</field>
+                                                                                    <value name="VALUE">
+                                                                                        <block type="logic_boolean">
+                                                                                            <field name="BOOL">FALSE</field>
+                                                                                        </block>
+                                                                                    </value>
+                                                                                    <next>
+                                                                                        <block type="pico_digital_write">
+                                                                                            <field name="PIN">yellow</field>
+                                                                                            <value name="VALUE">
+                                                                                                <block type="logic_boolean">
+                                                                                                    <field name="BOOL">TRUE</field>
+                                                                                                </block>
+                                                                                            </value>
+                                                                                            <next>
+                                                                                                <block type="pico_delay">
+                                                                                                    <value name="TIME">
+                                                                                                        <block type="math_number">
+                                                                                                            <field name="NUM">1</field>
+                                                                                                        </block>
+                                                                                                    </value>
+                                                                                                    <next>
+                                                                                                        <block type="pico_digital_write">
+                                                                                                            <field name="PIN">yellow</field>
+                                                                                                            <value name="VALUE">
+                                                                                                                <block type="logic_boolean">
+                                                                                                                    <field name="BOOL">FALSE</field>
+                                                                                                                </block>
+                                                                                                            </value>
+                                                                                                            <next>
+                                                                                                                <block type="pico_digital_write">
+                                                                                                                    <field name="PIN">green</field>
+                                                                                                                    <value name="VALUE">
+                                                                                                                        <block type="logic_boolean">
+                                                                                                                            <field name="BOOL">TRUE</field>
+                                                                                                                        </block>
+                                                                                                                    </value>
+                                                                                                                    <next>
+                                                                                                                        <block type="pico_delay">
+                                                                                                                            <value name="TIME">
+                                                                                                                                <block type="math_number">
+                                                                                                                                    <field name="NUM">3</field>
+                                                                                                                                </block>
+                                                                                                                            </value>
+                                                                                                                            <next>
+                                                                                                                                <block type="pico_digital_write">
+                                                                                                                                    <field name="PIN">green</field>
+                                                                                                                                    <value name="VALUE">
+                                                                                                                                        <block type="logic_boolean">
+                                                                                                                                            <field name="BOOL">FALSE</field>
+                                                                                                                                        </block>
+                                                                                                                                    </value>
+                                                                                                                                </block>
+                                                                                                                            </next>
+                                                                                                                        </block>
+                                                                                                                    </next>
+                                                                                                                </block>
+                                                                                                            </next>
+                                                                                                        </block>
+                                                                                                    </next>
+                                                                                                </block>
+                                                                                            </next>
+                                                                                        </block>
+                                                                                    </next>
+                                                                                </block>
+                                                                            </next>
+                                                                        </block>
+                                                                    </next>
+                                                                </block>
+                                                            </statement>
+                                                        </block>
+                                                    </next>
+                                                </block>
+                                            </next>
+                                        </block>
+                                    </next>
+                                </block>
+                            </next>
+                        </block>
+                    </xml>`;
+                    break;
+                    
+                case 'buzzer':
+                    xml = `<xml>
+                        <block type="pico_import" x="20" y="20">
+                            <next>
+                                <block type="pico_pwm_setup">
+                                    <field name="PIN">0</field>
+                                    <field name="FREQ">1000</field>
+                                    <field name="VAR">buzzer</field>
+                                    <next>
+                                        <block type="controls_repeat_ext">
+                                            <value name="TIMES">
+                                                <block type="math_number">
+                                                    <field name="NUM">3</field>
+                                                </block>
+                                            </value>
+                                            <statement name="DO">
+                                                <block type="pico_pwm_write">
+                                                    <field name="PWM">buzzer</field>
+                                                    <value name="VALUE">
+                                                        <block type="math_number">
+                                                            <field name="NUM">50</field>
+                                                        </block>
+                                                    </value>
+                                                    <next>
+                                                        <block type="pico_delay">
+                                                            <value name="TIME">
+                                                                <block type="math_number">
+                                                                    <field name="NUM">0.5</field>
+                                                                </block>
+                                                            </value>
+                                                            <next>
+                                                                <block type="pico_pwm_write">
+                                                                    <field name="PWM">buzzer</field>
+                                                                    <value name="VALUE">
+                                                                        <block type="math_number">
+                                                                            <field name="NUM">0</field>
+                                                                        </block>
+                                                                    </value>
+                                                                    <next>
+                                                                        <block type="pico_delay">
+                                                                            <value name="TIME">
+                                                                                <block type="math_number">
+                                                                                    <field name="NUM">0.5</field>
+                                                                                </block>
+                                                                            </value>
+                                                                        </block>
+                                                                    </next>
+                                                                </block>
+                                                            </next>
+                                                        </block>
+                                                    </next>
+                                                </block>
+                                            </statement>
+                                        </block>
+                                    </next>
+                                </block>
+                            </next>
+                        </block>
+                    </xml>`;
+                    break;
+                    
+                case 'light_sensor':
+                    xml = `<xml>
+                        <block type="pico_import" x="20" y="20">
+                            <next>
+                                <block type="controls_whileUntil">
+                                    <field name="MODE">WHILE</field>
+                                    <value name="BOOL">
+                                        <block type="logic_boolean">
+                                            <field name="BOOL">TRUE</field>
+                                        </block>
+                                    </value>
+                                    <statement name="DO">
+                                        <block type="controls_if">
+                                            <value name="IF0">
+                                                <block type="logic_compare">
+                                                    <field name="OP">LT</field>
+                                                    <value name="A">
+                                                        <block type="pico_adc_read">
+                                                            <field name="PIN">0</field>
+                                                        </block>
+                                                    </value>
+                                                    <value name="B">
+                                                        <block type="math_number">
+                                                            <field name="NUM">30000</field>
+                                                        </block>
+                                                    </value>
+                                                </block>
+                                            </value>
+                                            <statement name="DO0">
+                                                <block type="text_print">
+                                                    <value name="TEXT">
+                                                        <block type="text">
+                                                            <field name="TEXT">It's dark - turning on LED</field>
+                                                        </block>
+                                                    </value>
+                                                    <next>
+                                                        <block type="pico_led_on">
+                                                        </block>
+                                                    </next>
+                                                </block>
+                                            </statement>
+                                            <next>
+                                                <block type="pico_delay">
+                                                    <value name="TIME">
+                                                        <block type="math_number">
+                                                            <field name="NUM">0.5</field>
+                                                        </block>
+                                                    </value>
+                                                </block>
+                                            </next>
+                                        </block>
+                                    </statement>
+                                </block>
+                            </next>
+                        </block>
+                    </xml>`;
+                    break;
+            }
+            
+            if (xml && typeof Blockly !== 'undefined' && Blockly.Xml) {
+                try {
+                    Blockly.Xml.domToWorkspace(Blockly.utils.xml.textToDom(xml), workspace);
+                    generateCode();
+                } catch (error) {
+                    console.error('Error loading example:', error);
+                    alert('Error loading example. Please try again.');
+                }
+            }
+        }
+
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Update status indicator
+            const statusIndicator = document.getElementById('statusIndicator');
+            statusIndicator.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Initializing Blockly...';
+            
+            // Check if Blockly loaded successfully
+            if (typeof Blockly === 'undefined') {
+                statusIndicator.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> Blockly failed to load';
+                statusIndicator.className = 'badge bg-danger px-3 py-2';
+                alert('Blockly failed to load. Please check your internet connection and refresh the page.');
+                return;
+            }
+            
+            try {
+                defineCustomBlocks();
+                initBlockly();
+                initPinSelector();
+                
+                // Update status to ready
+                statusIndicator.innerHTML = '<i class="fas fa-check-circle me-1"></i> Ready';
+                statusIndicator.className = 'badge bg-success px-3 py-2';
+                
+                // Show welcome message
+                const codeOutputElement = document.getElementById('codeOutput');
+                if (codeOutputElement) {
+                    codeOutputElement.textContent = 
+                        '# Welcome to MicroPython Generator for Raspberry Pi Pico!\n' +
+                        '# 1. Drag blocks from the toolbox on the left\n' +
+                        '# 2. Connect them together to create your program\n' +
+                        '# 3. The MicroPython code will be generated automatically\n' +
+                        '# 4. Copy the code and upload it to your Pico\n' +
+                        '#\n' +
+                        '# Try the example buttons to get started!\n' +
+                        '# Click on pins in the diagram to see their capabilities!\n';
+                }
+            } catch (error) {
+                console.error('Initialization error:', error);
+                statusIndicator.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> Initialization failed';
+                statusIndicator.className = 'badge bg-danger px-3 py-2';
+                alert('Failed to initialize the editor. Error: ' + error.message);
+            }
+        });
+
+    </script>
+</body>
+</html>

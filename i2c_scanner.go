@@ -19,16 +19,16 @@ func main() {
 
 	// Scan for devices
 	var foundDevices []uint8
-	
+
 	for addr := uint8(0x08); addr < 0x78; addr++ {
 		// Try to write to the address
 		err := machine.I2C0.Tx(uint16(addr), []byte{}, nil)
-		
+
 		if err == nil {
 			foundDevices = append(foundDevices, addr)
 			println("Found device at address:", "0x"+formatHex(addr))
 		}
-		
+
 		time.Sleep(1 * time.Millisecond)
 	}
 
@@ -36,7 +36,7 @@ func main() {
 		println("No I2C devices found")
 	} else {
 		println("Scan complete. Found", len(foundDevices), "device(s)")
-		
+
 		// Print summary
 		println("\nDevice addresses:")
 		for _, addr := range foundDevices {
@@ -86,11 +86,11 @@ func identifyDevice(addr uint8) string {
 // exampleCommunication demonstrates basic I2C communication
 func exampleCommunication(addr uint8) {
 	println("\nTesting communication with device at 0x" + formatHex(addr))
-	
+
 	// Try reading some data
 	readBuf := make([]byte, 2)
 	err := machine.I2C0.Tx(uint16(addr), nil, readBuf)
-	
+
 	if err == nil {
 		println("Successfully read", len(readBuf), "bytes:")
 		for i, b := range readBuf {
@@ -99,11 +99,11 @@ func exampleCommunication(addr uint8) {
 	} else {
 		println("Failed to read from device")
 	}
-	
+
 	// Try writing some data (register 0x00 with value 0x01)
 	writeBuf := []byte{0x00, 0x01}
 	err = machine.I2C0.Tx(uint16(addr), writeBuf, nil)
-	
+
 	if err == nil {
 		println("Successfully wrote", len(writeBuf), "bytes")
 	} else {

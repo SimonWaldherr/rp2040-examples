@@ -9,13 +9,13 @@ func main() {
 	// Configure PWM pins
 	pwm0 := machine.PWM0
 	pwm1 := machine.PWM1
-	
+
 	// Configure pins for PWM output
 	pin0 := machine.GP0
 	pin1 := machine.GP1
 	pin2 := machine.GP2
 	pin3 := machine.GP3
-	
+
 	pin0.Configure(machine.PinConfig{Mode: machine.PinPWM})
 	pin1.Configure(machine.PinConfig{Mode: machine.PinPWM})
 	pin2.Configure(machine.PinConfig{Mode: machine.PinPWM})
@@ -44,19 +44,19 @@ func main() {
 		println("Failed to get channel for pin0")
 		return
 	}
-	
+
 	ch1, err := pwm0.Channel(pin1)
 	if err != nil {
 		println("Failed to get channel for pin1")
 		return
 	}
-	
+
 	ch2, err := pwm1.Channel(pin2)
 	if err != nil {
 		println("Failed to get channel for pin2")
 		return
 	}
-	
+
 	ch3, err := pwm1.Channel(pin3)
 	if err != nil {
 		println("Failed to get channel for pin3")
