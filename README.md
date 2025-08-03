@@ -4,6 +4,8 @@
 
 test the new [Blockly Micropython Editor](https://simonwaldherr.github.io/rp2040-examples/)!  
 
+[![Watch the video](https://img.youtube.com/vi/QYv2qZ7QwnE/maxresdefault.jpg)](https://youtu.be/QYv2qZ7QwnE)
+
 Welcome to the RP2040 Examples repository! This collection showcases various projects and code samples for the [Raspberry Pi Pico](https://www.raspberrypi.com/products/raspberry-pi-pico/) and other RP2040-based microcontroller boards. Whether you're a beginner looking to get started with MicroPython or an experienced developer exploring Golang on embedded systems, you'll find something useful here.
 
 If you're also interested in Raspberry Pi projects using Golang, be sure to check out my [Raspberry Pi Golang examples](https://github.com/SimonWaldherr/rpi-examples).
