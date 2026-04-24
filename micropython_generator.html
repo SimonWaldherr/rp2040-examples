@@ -9,6 +9,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Prism.js for Python syntax highlighting -->
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
     <!-- Blockly CSS -->
     <style>
         .blockly-workspace {
@@ -167,6 +169,121 @@
             color: #6c757d;
             border: 2px dashed #dee2e6;
         }
+
+        /* Enhanced code output panel */
+        pre.code-output-pre {
+            margin: 0;
+            padding: 0;
+            background: transparent !important;
+            border: none !important;
+            max-height: 420px;
+            overflow: auto;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        pre.code-output-pre code {
+            font-family: 'Fira Mono', 'Consolas', 'Courier New', monospace;
+            background: transparent !important;
+            text-shadow: none !important;
+            padding: 0 !important;
+        }
+
+        /* Example search box + details button */
+        .example-search {
+            margin-bottom: 8px;
+        }
+        .example-card .example-info-btn {
+            padding: 0 6px;
+            font-size: 11px;
+            line-height: 1;
+        }
+        .example-card.hidden-by-search {
+            display: none;
+        }
+
+        /* Keyboard shortcut key caps */
+        kbd {
+            background: #212529;
+            color: #fff;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-family: 'Fira Mono', monospace;
+        }
+
+        /* Toast-style status messages */
+        .editor-toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            min-width: 240px;
+            z-index: 3000;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.25s, transform 0.25s;
+            pointer-events: none;
+        }
+        .editor-toast.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Demo / example details modal content */
+        .demo-detail-section {
+            margin-bottom: 12px;
+        }
+        .demo-detail-section h6 {
+            color: #6c5ce7;
+            margin-bottom: 4px;
+        }
+        .demo-wiring-list {
+            margin: 0;
+            padding-left: 1.2rem;
+        }
+        .demo-wiring-list li {
+            margin-bottom: 2px;
+        }
+
+        /* Sticky action bar inside controls */
+        .workspace-actions .btn {
+            text-align: left;
+        }
+        .workspace-actions .btn i {
+            width: 18px;
+            text-align: center;
+            margin-right: 4px;
+        }
+
+        /* Workspace title / project metadata bar */
+        .project-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            background: #f1f3f5;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+        .project-bar .project-name {
+            font-weight: 600;
+            flex: 1;
+            border: none;
+            background: transparent;
+            outline: none;
+        }
+        .project-bar .project-name:focus {
+            background: #fff;
+            border-radius: 4px;
+            box-shadow: inset 0 0 0 1px #ced4da;
+            padding: 2px 6px;
+        }
+        .autosave-indicator {
+            font-size: 11px;
+            color: #6c757d;
+        }
     </style>
 </head>
 <body>
@@ -176,11 +293,19 @@
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="mb-0">🔧 MicroPython Generator for Raspberry Pi Pico</h1>
-                    <p class="mb-0 mt-2">Visual programming for RP2040 & RP2350 microcontrollers</p>
+                    <p class="mb-0 mt-2">Visual programming for RP2040 &amp; RP2350 microcontrollers</p>
                 </div>
-                <div id="statusIndicator" class="badge bg-warning px-3 py-2">
-                    <i class="fas fa-spinner fa-spin me-1"></i>
-                    Loading...
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#shortcutsModal" title="Keyboard shortcuts">
+                        <i class="fas fa-keyboard"></i> <span class="d-none d-md-inline">Shortcuts</span>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#helpModal" title="Help &amp; tips">
+                        <i class="fas fa-circle-question"></i> <span class="d-none d-md-inline">Help</span>
+                    </button>
+                    <div id="statusIndicator" class="badge bg-warning px-3 py-2">
+                        <i class="fas fa-spinner fa-spin me-1"></i>
+                        Loading...
+                    </div>
                 </div>
             </div>
         </div>
@@ -201,115 +326,19 @@
                             </button>
                         </h5>
                     </div>
-                    <div class="collapse" id="quickExamples">
+                    <div class="collapse show" id="quickExamples">
                         <div class="card-body p-0">
-                            <div style="max-height: 300px; overflow-y: auto; padding: 10px;">
-                                <div class="example-card card mb-2">
-                                    <div class="card-body p-2">
-                                        <button class="btn btn-sm btn-outline-primary w-100 mb-1" onclick="loadExample('blink')">
-                                            💡 Blink LED
-                                        </button>
-                                        <small class="text-muted">Basic LED control</small>
-                                    </div>
+                            <div style="padding: 10px;">
+                                <div class="example-search">
+                                    <input type="search" id="exampleSearch" class="form-control form-control-sm"
+                                        placeholder="🔎 Search examples (e.g. LED, sensor, PWM)"
+                                        aria-label="Search examples">
                                 </div>
-                                
-                                <div class="example-card card mb-2">
-                                    <div class="card-body p-2">
-                                        <button class="btn btn-sm btn-outline-primary w-100 mb-1" onclick="loadExample('button')">
-                                            🔘 Button Input
-                                        </button>
-                                        <small class="text-muted">Read button presses</small>
-                                    </div>
+                                <div id="exampleList" style="max-height: 320px; overflow-y: auto;">
+                                    <!-- Example cards are rendered from the exampleDetails registry in JS -->
                                 </div>
-                                
-                                <div class="example-card card mb-2">
-                                    <div class="card-body p-2">
-                                        <button class="btn btn-sm btn-outline-primary w-100 mb-1" onclick="loadExample('sensor')">
-                                            🌡️ Temperature Sensor
-                                        </button>
-                                        <small class="text-muted">DHT22 temperature reading</small>
-                                    </div>
-                                </div>
-                                
-                                <div class="example-card card mb-2">
-                                    <div class="card-body p-2">
-                                        <button class="btn btn-sm btn-outline-primary w-100 mb-1" onclick="loadExample('pwm')">
-                                            📊 PWM Control
-                                        </button>
-                                        <small class="text-muted">Motor/servo control</small>
-                                    </div>
-                                </div>
-                                
-                                <div class="example-card card mb-2">
-                                    <div class="card-body p-2">
-                                        <button class="btn btn-sm btn-outline-success w-100 mb-1" onclick="loadExample('adc')">
-                                            📈 Analog Reading
-                                        </button>
-                                        <small class="text-muted">Read analog sensors</small>
-                                    </div>
-                                </div>
-                                
-                                <div class="example-card card mb-2">
-                                    <div class="card-body p-2">
-                                        <button class="btn btn-sm btn-outline-info w-100 mb-1" onclick="loadExample('i2c')">
-                                            🔗 I2C Communication
-                                        </button>
-                                        <small class="text-muted">Setup I2C bus</small>
-                                    </div>
-                                </div>
-                                
-                                <div class="example-card card mb-2">
-                                    <div class="card-body p-2">
-                                        <button class="btn btn-sm btn-outline-warning w-100 mb-1" onclick="loadExample('servo')">
-                                            🎮 Servo Motor
-                                        </button>
-                                        <small class="text-muted">Control servo position</small>
-                                    </div>
-                                </div>
-                                
-                                <div class="example-card card mb-2">
-                                    <div class="card-body p-2">
-                                        <button class="btn btn-sm btn-outline-danger w-100 mb-1" onclick="loadExample('neopixel')">
-                                            🌈 NeoPixel LEDs
-                                        </button>
-                                        <small class="text-muted">RGB LED strip control</small>
-                                    </div>
-                                </div>
-                                
-                                <div class="example-card card mb-2">
-                                    <div class="card-body p-2">
-                                        <button class="btn btn-sm btn-outline-secondary w-100 mb-1" onclick="loadExample('ultrasonic')">
-                                            📏 Distance Sensor
-                                        </button>
-                                        <small class="text-muted">HC-SR04 ultrasonic</small>
-                                    </div>
-                                </div>
-                                
-                                <div class="example-card card mb-2">
-                                    <div class="card-body p-2">
-                                        <button class="btn btn-sm btn-outline-dark w-100 mb-1" onclick="loadExample('traffic_light')">
-                                            🚦 Traffic Light
-                                        </button>
-                                        <small class="text-muted">Sequential LED control</small>
-                                    </div>
-                                </div>
-                                
-                                <div class="example-card card mb-2">
-                                    <div class="card-body p-2">
-                                        <button class="btn btn-sm btn-outline-primary w-100 mb-1" onclick="loadExample('buzzer')">
-                                            🔊 Buzzer Tones
-                                        </button>
-                                        <small class="text-muted">PWM sound generation</small>
-                                    </div>
-                                </div>
-                                
-                                <div class="example-card card mb-2">
-                                    <div class="card-body p-2">
-                                        <button class="btn btn-sm btn-outline-success w-100 mb-1" onclick="loadExample('light_sensor')">
-                                            ☀️ Light Sensor
-                                        </button>
-                                        <small class="text-muted">Photoresistor reading</small>
-                                    </div>
+                                <div id="exampleEmpty" class="text-muted small text-center py-2" style="display:none;">
+                                    No examples match your search.
                                 </div>
                             </div>
                         </div>
@@ -487,24 +516,45 @@
                 <div class="card mt-3">
                     <div class="card-header">
                         <h5 class="mb-0">
-                            <button class="btn btn-link w-100 text-start collapse-button" type="button" data-bs-toggle="collapse" data-bs-target="#controls" aria-expanded="false" aria-controls="controls">
+                            <button class="btn btn-link w-100 text-start collapse-button" type="button" data-bs-toggle="collapse" data-bs-target="#controls" aria-expanded="true" aria-controls="controls">
                                 ⚙️ Controls
                                 <i class="fas fa-chevron-down float-end mt-1"></i>
                             </button>
                         </h5>
                     </div>
-                    <div class="collapse" id="controls">
-                        <div class="card-body">
-                        <button class="btn btn-success w-100 mb-2" onclick="generateCode()">
-                            🔄 Generate Code
-                        </button>
-                        <button class="btn btn-warning w-100 mb-2" onclick="clearWorkspace()">
-                            🗑️ Clear Workspace
-                        </button>
-                        <button class="btn btn-info w-100 mb-2" onclick="downloadCode()">
-                            💾 Download .py
-                        </button>
-                    </div>
+                    <div class="collapse show" id="controls">
+                        <div class="card-body workspace-actions">
+                            <div class="d-flex gap-2 mb-2">
+                                <button class="btn btn-sm btn-outline-secondary flex-fill" onclick="undoWorkspace()" title="Undo (Ctrl+Z)">
+                                    <i class="fas fa-rotate-left"></i> Undo
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary flex-fill" onclick="redoWorkspace()" title="Redo (Ctrl+Shift+Z)">
+                                    <i class="fas fa-rotate-right"></i> Redo
+                                </button>
+                            </div>
+                            <button class="btn btn-success w-100 mb-2" onclick="generateCode()" title="Regenerate Python code from blocks">
+                                <i class="fas fa-code"></i> Generate Code
+                            </button>
+                            <button class="btn btn-info w-100 mb-2" onclick="downloadCode()" title="Download generated code as .py file">
+                                <i class="fas fa-file-arrow-down"></i> Download .py
+                            </button>
+                            <hr class="my-2">
+                            <div class="small text-muted mb-1">Project</div>
+                            <button class="btn btn-outline-primary w-100 mb-2" onclick="exportWorkspace()" title="Save workspace as .xml file">
+                                <i class="fas fa-floppy-disk"></i> Export Project (.xml)
+                            </button>
+                            <button class="btn btn-outline-primary w-100 mb-2" onclick="document.getElementById('importFile').click()" title="Load a previously saved .xml workspace">
+                                <i class="fas fa-folder-open"></i> Import Project (.xml)
+                            </button>
+                            <input type="file" id="importFile" accept=".xml,text/xml" style="display:none"
+                                onchange="importWorkspace(event)">
+                            <button class="btn btn-outline-danger w-100 mb-2" onclick="newProject()" title="Start a new empty project (clears workspace)">
+                                <i class="fas fa-file"></i> New Project
+                            </button>
+                            <button class="btn btn-warning w-100 mb-2" onclick="clearWorkspace()" title="Clear all blocks from the workspace">
+                                <i class="fas fa-trash"></i> Clear Workspace
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="card mt-3">
@@ -519,13 +569,21 @@
                     <div class="collapse" id="usageTips">
                         <div class="card-body">
                         <small>
-                            <ul class="list-unstyled">
-                                <li>• Drag blocks from toolbox</li>
-                                <li>• Connect blocks together</li>
-                                <li>• Generate MicroPython code</li>
-                                <li>• Copy to Thonny or your IDE</li>
-                                <li>• Upload to your Pico</li>
+                            <ul class="list-unstyled mb-2">
+                                <li>• Drag blocks from the toolbox and snap them together</li>
+                                <li>• Hover a block to see its tooltip</li>
+                                <li>• Click an example to load a ready-made program</li>
+                                <li>• Click the <i class="fas fa-circle-info text-primary"></i> on an example for wiring &amp; expected behavior</li>
+                                <li>• Generated code is shown on the right &mdash; copy it into Thonny or save as .py</li>
+                                <li>• Use <strong>Export / Import Project</strong> to back up and share workspaces</li>
+                                <li>• Your work is auto-saved to your browser &mdash; reload-safe</li>
+                                <li>• Press <kbd>?</kbd> or click <strong>Shortcuts</strong> for the keybinding list</li>
                             </ul>
+                            <div class="alert alert-info py-2 px-2 mb-0" style="font-size:11px;">
+                                <i class="fas fa-lightbulb"></i>
+                                Upload the generated <code>.py</code> file as <code>main.py</code> to your Pico
+                                to have it run automatically on boot.
+                            </div>
                         </small>
                         </div>
                     </div>
@@ -533,6 +591,17 @@
             </div>
             <!-- Main content area: Blockly Workspace and Code Output -->
             <div class="col-md-8 col-lg-8">
+                <!-- Project metadata bar -->
+                <div class="project-bar">
+                    <i class="fas fa-microchip text-primary"></i>
+                    <input type="text" id="projectName" class="project-name"
+                        value="untitled_project" maxlength="60"
+                        title="Project name (used as the default filename on download)"
+                        aria-label="Project name">
+                    <span id="autosaveIndicator" class="autosave-indicator" title="Automatically saved to your browser">
+                        <i class="fas fa-cloud"></i> auto-saved
+                    </span>
+                </div>
                 <div class="row gx-3">
                     <div class="col-lg-7 mb-3">
                         <div class="card shadow h-100 border-0" style="background: linear-gradient(120deg, #f8fafd 60%, #e9f0ff 100%);">
@@ -561,15 +630,17 @@
                         <div class="card shadow h-100 border-0" style="position:sticky; top:20px; background: linear-gradient(120deg, #23272f 60%, #2d3140 100%);">
                             <div class="card-header bg-transparent border-bottom-0 pb-2 pt-3 d-flex justify-content-between align-items-center">
                                 <span class="mb-0" style="font-family: 'Fira Mono', 'Consolas', 'Courier New', monospace; color: #ffe066; font-size: 1rem; letter-spacing: 0.5px;">🐍 MicroPython Code</span>
-                                <button id="copyBtn" class="btn btn-sm btn-outline-warning px-3" onclick="copyToClipboard()" title="Copy code to clipboard" style="transition: background 0.2s;">
-                                    <i class="fas fa-copy"></i> <span class="d-none d-md-inline">Copy</span>
-                                </button>
+                                <div class="btn-group btn-group-sm">
+                                    <button id="copyBtn" class="btn btn-sm btn-outline-warning px-3" onclick="copyToClipboard()" title="Copy code to clipboard">
+                                        <i class="fas fa-copy"></i> <span class="d-none d-md-inline">Copy</span>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-warning px-3" onclick="downloadCode()" title="Download as .py file">
+                                        <i class="fas fa-download"></i> <span class="d-none d-md-inline">Save</span>
+                                    </button>
+                                </div>
                             </div>
                             <div class="card-body p-2">
-                                <pre class="mb-0" style="background: transparent; border: none; padding: 0; margin: 0;">
-<code id="codeOutput" class="code-output" readonly 
-    style="display: block; height: 420px; font-size: 13px; background: transparent; color: #e9ecef; border-radius: 0.5rem; border: none; font-family: 'Fira Mono', 'Consolas', 'Courier New', monospace; overflow-y: auto; resize: vertical; box-shadow: none; padding: 1rem; white-space: pre;">
-</code></pre>
+                                <pre class="mb-0 code-output-pre"><code id="codeOutput" class="language-python code-output" style="display:block; height:420px; overflow:auto;"></code></pre>
                             </div>
                         </div>
                     </div>
@@ -645,12 +716,106 @@
         </category>
     </xml>
 
+    <!-- ===== Modals ===== -->
+
+    <!-- Example details / demo modal -->
+    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Example</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="exampleModalBody">
+                    <!-- filled dynamically -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="exampleModalLoadBtn">
+                        <i class="fas fa-cubes"></i> Load blocks into workspace
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keyboard shortcuts modal -->
+    <div class="modal fade" id="shortcutsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-keyboard"></i> Keyboard shortcuts</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-sm mb-0">
+                        <tbody>
+                            <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>Undo</td></tr>
+                            <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd></td><td>Redo</td></tr>
+                            <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Export project to <code>.xml</code></td></tr>
+                            <tr><td><kbd>Ctrl</kbd>+<kbd>O</kbd></td><td>Import project from <code>.xml</code></td></tr>
+                            <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>Download generated code as <code>.py</code></td></tr>
+                            <tr><td><kbd>Ctrl</kbd>+<kbd>Enter</kbd></td><td>Regenerate code &amp; copy to clipboard</td></tr>
+                            <tr><td><kbd>?</kbd></td><td>Show this shortcut list</td></tr>
+                            <tr><td><kbd>Delete</kbd> / <kbd>Backspace</kbd></td><td>Delete selected block</td></tr>
+                            <tr><td>Mouse-wheel on workspace</td><td>Zoom</td></tr>
+                        </tbody>
+                    </table>
+                    <small class="text-muted">Shortcuts work when the workspace is focused; they do not trigger while editing text inside an input.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help / getting-started modal -->
+    <div class="modal fade" id="helpModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-circle-question"></i> Getting started</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h6>1. Build a program with blocks</h6>
+                    <p class="small">Open a category in the toolbox on the left of the workspace and drag blocks onto the canvas. Snap blocks together to control flow. Hover a block to see a tooltip explaining what it does.</p>
+
+                    <h6>2. Watch the code update</h6>
+                    <p class="small">The panel on the right shows the generated MicroPython code in real time with syntax highlighting. Use <strong>Copy</strong> to send it to your clipboard or <strong>Download .py</strong> to save it.</p>
+
+                    <h6>3. Flash it onto your Pico</h6>
+                    <p class="small">
+                        Install <a href="https://thonny.org/" target="_blank" rel="noopener">Thonny</a> (recommended for beginners) or use <code>mpremote</code>,
+                        connect your RP2040/RP2350 board, paste the code or save it as <code>main.py</code> on the device and run.
+                    </p>
+
+                    <h6>4. Keep your work safe</h6>
+                    <p class="small">Your workspace is auto-saved to your browser &mdash; reloading the page restores it. Use <strong>Export Project</strong> to produce a <code>.xml</code> file you can share or commit to version control, and <strong>Import Project</strong> to bring one back.</p>
+
+                    <h6>5. Learn from examples</h6>
+                    <p class="small">Every example in the sidebar has an <i class="fas fa-circle-info text-primary"></i> button that opens a demo view with a description, required hardware, wiring notes and expected behavior &mdash; useful even if you don't load the blocks.</p>
+
+                    <div class="alert alert-secondary small mb-0">
+                        <strong>Tip:</strong> The generated code uses only the standard MicroPython modules
+                        <code>machine</code>, <code>time</code>, <code>dht</code> and <code>neopixel</code>,
+                        which are included in the official MicroPython firmware for the Raspberry Pi Pico / Pico&nbsp;2.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast container -->
+    <div id="editorToast" class="editor-toast alert alert-success shadow" role="status" aria-live="polite"></div>
+
     <!-- Blockly and Bootstrap JS -->
     <script src="https://unpkg.com/blockly@10.4.3/blockly_compressed.js"></script>
     <script src="https://unpkg.com/blockly@10.4.3/blocks_compressed.js"></script>
     <script src="https://unpkg.com/blockly@10.4.3/python_compressed.js"></script>
     <script src="https://unpkg.com/blockly@10.4.3/msg/en.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Prism.js (python syntax highlighting for the code output) -->
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
 
     <script>
         // Pin information database
@@ -909,6 +1074,8 @@
                     this.setNextStatement(true, null);
                     this.setPreviousStatement(true, null);
                     this.setColour(65);
+                    this.setTooltip("Configure a GPIO pin as OUTPUT, INPUT or INPUT_PULLUP and bind it to a variable name so you can use it later in your code.");
+                    this.setHelpUrl("https://docs.micropython.org/en/latest/rp2/quickref.html#pins-and-gpio");
                 }
             };
 
@@ -930,6 +1097,8 @@
                     this.setPreviousStatement(true, null);
                     this.setNextStatement(true, null);
                     this.setColour(65);
+                    this.setTooltip("Set an output pin HIGH (True, 3.3V) or LOW (False, 0V). The pin name must match one you configured with 'Setup pin'.");
+                    this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.Pin.html#machine.Pin.value");
                 }
             };
 
@@ -948,6 +1117,8 @@
                         .appendField(new Blockly.FieldTextInput("pin"), "PIN");
                     this.setOutput(true, "Boolean");
                     this.setColour(65);
+                    this.setTooltip("Read the digital state of a configured input pin. Returns True when the pin is HIGH and False when it is LOW.");
+                    this.setHelpUrl("https://docs.micropython.org/en/latest/library/machine.Pin.html#machine.Pin.value");
                 }
             };
 
@@ -970,6 +1141,8 @@
                     this.setPreviousStatement(true, null);
                     this.setNextStatement(true, null);
                     this.setColour(65);
+                    this.setTooltip("Pause program execution for the given amount of time. Use milliseconds for short timing loops (e.g. button debouncing) and seconds for human-scale delays.");
+                    this.setHelpUrl("https://docs.micropython.org/en/latest/library/time.html#time.sleep");
                 }
             };
 
@@ -987,6 +1160,7 @@
                     this.setPreviousStatement(true, null);
                     this.setNextStatement(true, null);
                     this.setColour(45);
+                    this.setTooltip("Turn on the on-board LED (GP25) of the Raspberry Pi Pico. Does not affect external LEDs.");
                 }
             };
 
@@ -1002,6 +1176,7 @@
                     this.setPreviousStatement(true, null);
                     this.setNextStatement(true, null);
                     this.setColour(45);
+                    this.setTooltip("Turn off the on-board LED (GP25) of the Raspberry Pi Pico.");
                 }
             };
 
@@ -1017,6 +1192,7 @@
                     this.setPreviousStatement(true, null);
                     this.setNextStatement(true, null);
                     this.setColour(45);
+                    this.setTooltip("Invert the state of the on-board LED (GP25) — if it was off it turns on, and vice versa.");
                 }
             };
 
@@ -1038,6 +1214,7 @@
                     this.setPreviousStatement(true, null);
                     this.setNextStatement(true, null);
                     this.setColour(45);
+                    this.setTooltip("Blink the on-board LED a given number of times with the specified delay (in seconds) between ON and OFF states.");
                 }
             };
 
@@ -1055,6 +1232,7 @@
                         .appendField(new Blockly.FieldNumber(14, 0, 28), "PIN");
                     this.setOutput(true, "Boolean");
                     this.setColour(85);
+                    this.setTooltip("Returns True while an active-low button wired between the given GPIO and GND is being pressed. Uses the Pico's internal pull-up — no external resistor needed.");
                 }
             };
 
@@ -1075,6 +1253,8 @@
                         ]), "PIN");
                     this.setOutput(true, "Number");
                     this.setColour(85);
+                    this.setTooltip("Read an analog voltage using one of the RP2040's ADC channels. Returns a 16-bit unsigned value (0-65535), where 65535 corresponds to 3.3V.");
+                    this.setHelpUrl("https://docs.micropython.org/en/latest/rp2/quickref.html#adc-analog-to-digital-conversion");
                 }
             };
 
@@ -1096,6 +1276,8 @@
                     this.setNextStatement(true, null);
                     this.setPreviousStatement(true, null);
                     this.setColour(85);
+                    this.setTooltip("Configure a PWM (Pulse Width Modulation) output on a GPIO pin. Typical frequencies: 50 Hz for servos, 500-2000 Hz for motors/LEDs, higher for audio/buzzers.");
+                    this.setHelpUrl("https://docs.micropython.org/en/latest/rp2/quickref.html#pwm-pulse-width-modulation");
                 }
             };
 
@@ -1119,6 +1301,7 @@
                     this.setPreviousStatement(true, null);
                     this.setNextStatement(true, null);
                     this.setColour(85);
+                    this.setTooltip("Set the PWM duty cycle as a percentage (0-100). 0 is always off, 100 is fully on. For LEDs this controls brightness, for motors it controls speed.");
                 }
             };
 
@@ -1141,13 +1324,23 @@
                         ]), "TYPE");
                     this.setOutput(true, "Number");
                     this.setColour(195);
+                    this.setTooltip("Read temperature (°C) or humidity (%) from a DHT22/AM2302 sensor. The sensor needs a 10 kΩ pull-up resistor between data and 3.3V and ~2 seconds between successive reads.");
                 }
             };
 
             Blockly.Python['pico_dht22_read'] = function(block) {
                 const pin = block.getFieldValue('PIN');
                 const type = block.getFieldValue('TYPE');
-                return [`dht.DHT22(Pin(${pin})).${type}()`, Blockly.Python.ORDER_FUNCTION_CALL];
+                // Provide a reusable helper that does measure() before reading.
+                const funcName = Blockly.Python.provideFunction_(
+                    'dht22_read',
+                    [
+                        'def ' + Blockly.Python.FUNCTION_NAME_PLACEHOLDER_ + '(pin_num, what):',
+                        '    sensor = dht.DHT22(Pin(pin_num))',
+                        '    sensor.measure()',
+                        '    return sensor.temperature() if what == "temperature" else sensor.humidity()'
+                    ]);
+                return [`${funcName}(${pin}, "${type}")`, Blockly.Python.ORDER_FUNCTION_CALL];
             };
 
             // Ultrasonic Read Block
@@ -1161,13 +1354,33 @@
                         .appendField(new Blockly.FieldNumber(17, 0, 28), "ECHO");
                     this.setOutput(true, "Number");
                     this.setColour(195);
+                    this.setTooltip("Measure distance in centimeters with an HC-SR04 ultrasonic sensor. Trigger is an OUTPUT, echo is an INPUT. Use a voltage divider on the echo pin — the sensor outputs 5V but the RP2040 is 3.3V-only.");
                 }
             };
 
             Blockly.Python['pico_ultrasonic_read'] = function(block) {
                 const trig = block.getFieldValue('TRIG');
                 const echo = block.getFieldValue('ECHO');
-                return [`ultrasonic_distance(Pin(${trig}, Pin.OUT), Pin(${echo}, Pin.IN))`, Blockly.Python.ORDER_FUNCTION_CALL];
+                // Provide an inline helper so the generated code is actually runnable.
+                const funcName = Blockly.Python.provideFunction_(
+                    'ultrasonic_distance',
+                    [
+                        'def ' + Blockly.Python.FUNCTION_NAME_PLACEHOLDER_ + '(trig_pin, echo_pin):',
+                        '    trig = Pin(trig_pin, Pin.OUT)',
+                        '    echo = Pin(echo_pin, Pin.IN)',
+                        '    trig.low()',
+                        '    time.sleep_us(2)',
+                        '    trig.high()',
+                        '    time.sleep_us(10)',
+                        '    trig.low()',
+                        '    while echo.value() == 0:',
+                        '        start = time.ticks_us()',
+                        '    while echo.value() == 1:',
+                        '        end = time.ticks_us()',
+                        '    # Speed of sound ~343 m/s, divide by 2 for round trip',
+                        '    return (time.ticks_diff(end, start) * 0.0343) / 2'
+                    ]);
+                return [`${funcName}(${trig}, ${echo})`, Blockly.Python.ORDER_FUNCTION_CALL];
             };
 
             // I2C Setup Block
@@ -1184,6 +1397,8 @@
                     this.setNextStatement(true, null);
                     this.setPreviousStatement(true, null);
                     this.setColour(195);
+                    this.setTooltip("Initialize the I2C0 peripheral at 100 kHz on the chosen SDA/SCL pins. Remember that I2C needs 4.7 kΩ pull-up resistors on both lines.");
+                    this.setHelpUrl("https://docs.micropython.org/en/latest/rp2/quickref.html#software-i2c-bus");
                 }
             };
 
@@ -1205,6 +1420,7 @@
                     this.setNextStatement(true, null);
                     this.setPreviousStatement(true, null);
                     this.setColour(285);
+                    this.setTooltip("Prepare a GPIO pin to drive a hobby servo. Uses 50 Hz PWM under the hood. Power the servo from an external 5V supply for anything bigger than a micro servo.");
                 }
             };
 
@@ -1227,6 +1443,7 @@
                     this.setPreviousStatement(true, null);
                     this.setNextStatement(true, null);
                     this.setColour(285);
+                    this.setTooltip("Move the servo to the given angle (0°-180°). Different servos have slightly different pulse-width ranges; adjust in code if the endpoints are off.");
                 }
             };
 
@@ -1249,6 +1466,8 @@
                     this.setNextStatement(true, null);
                     this.setPreviousStatement(true, null);
                     this.setColour(285);
+                    this.setTooltip("Create a NeoPixel (WS2812/SK6812) strip on the given pin with the specified LED count. For more than a handful of LEDs use an external 5V supply and a level shifter on the data line.");
+                    this.setHelpUrl("https://docs.micropython.org/en/latest/library/neopixel.html");
                 }
             };
 
@@ -1279,6 +1498,7 @@
                     this.setPreviousStatement(true, null);
                     this.setNextStatement(true, null);
                     this.setColour(285);
+                    this.setTooltip("Set a single NeoPixel at the given index to an RGB colour (each channel 0-255) and immediately push the colour out to the strip.");
                 }
             };
 
@@ -1292,78 +1512,514 @@
             };
         }
 
-        // Generate MicroPython code
+        // ----- Example registry (metadata for the demo modal + search) -----
+        // The actual block XML lives in loadExample() below — this registry
+        // keeps titles, searchable descriptions, hardware and expected-behavior
+        // info so we can render the sidebar list and the "demo details" modal
+        // from a single source of truth.
+        const exampleDetails = {
+            blink: {
+                emoji: '💡', title: 'Blink LED',
+                summary: 'Basic on-board LED control',
+                description: 'Blinks the on-board LED (GP25) ten times, 0.5 s ON and 0.5 s OFF. The classic "hello world" of microcontrollers — use it to verify your toolchain and board are working before anything else.',
+                hardware: ['Raspberry Pi Pico / Pico 2 (no extra wiring required)'],
+                wiring: ['Uses the LED already wired to GP25 on the board'],
+                expected: 'The green on-board LED blinks 10 times, then the program ends.',
+                style: 'primary'
+            },
+            button: {
+                emoji: '🔘', title: 'Button Input',
+                summary: 'Read a push-button and print on press',
+                description: 'Reads a push-button wired to GP14 (to GND) using the Pico\'s internal pull-up resistor. Turns the on-board LED on and prints "Button pressed!" while the button is held.',
+                hardware: ['Raspberry Pi Pico / Pico 2', 'Momentary push-button'],
+                wiring: ['One button leg → GP14', 'Other leg → GND', 'No resistor required (internal pull-up is enabled)'],
+                expected: 'While you press the button the LED turns on and the serial console prints a message every 100 ms.',
+                style: 'primary'
+            },
+            sensor: {
+                emoji: '🌡️', title: 'Temperature Sensor (DHT22)',
+                summary: 'Read a DHT22/AM2302 temperature sensor',
+                description: 'Periodically reads the temperature from a DHT22 sensor on GP2 and prints the value with units to the serial console.',
+                hardware: ['DHT22 (or AM2302) sensor', '10 kΩ pull-up resistor'],
+                wiring: ['DHT22 VCC → 3V3(OUT)', 'DHT22 DATA → GP2', 'DHT22 GND → GND', '10 kΩ resistor between DATA and VCC'],
+                expected: 'The console prints "Temperature: XX°C" every 2 seconds.',
+                style: 'primary'
+            },
+            pwm: {
+                emoji: '📊', title: 'PWM Fade',
+                summary: 'Sweep a PWM output (motor or LED)',
+                description: 'Sets up PWM on GP0 at 1 kHz and ramps the duty cycle from 0 % to 100 % in steps of 10 %. Great for dimming LEDs or spinning up a DC motor.',
+                hardware: ['LED + current-limiting resistor, or a small DC motor with a MOSFET driver'],
+                wiring: ['Load between GP0 and GND (through a resistor / driver)'],
+                expected: 'The connected load progressively ramps up in intensity / speed.',
+                style: 'primary'
+            },
+            adc: {
+                emoji: '📈', title: 'Analog Reading',
+                summary: 'Sample an ADC channel in a loop',
+                description: 'Continuously reads ADC0 (GP26) and prints the 16-bit value to the serial console twice per second. Use this as a starting point for potentiometers, photoresistors or any other analog sensor.',
+                hardware: ['Potentiometer or analog sensor (voltage 0-3.3 V)'],
+                wiring: ['Sensor output → GP26 (ADC0)', 'Sensor GND → GND', 'Sensor VCC → 3V3(OUT)'],
+                expected: 'The console prints "ADC Value: N" (0-65535) twice per second.',
+                style: 'success'
+            },
+            i2c: {
+                emoji: '🔗', title: 'I2C Setup',
+                summary: 'Initialize the I2C0 peripheral',
+                description: 'Initializes I2C0 on GP16 (SDA) / GP17 (SCL) at 100 kHz. Starting skeleton for driving I2C displays (SSD1306), sensors (BME280) or port expanders (PCF8574).',
+                hardware: ['Any I2C device — pull-ups required (4.7 kΩ to 3V3 on both lines) if the device does not include them'],
+                wiring: ['Device SDA → GP16', 'Device SCL → GP17', 'Device GND → GND, VCC → 3V3(OUT)'],
+                expected: 'The console confirms that the I2C bus was initialized. Extend with `i2c.scan()` to discover device addresses.',
+                style: 'info'
+            },
+            servo: {
+                emoji: '🎮', title: 'Servo Motor',
+                summary: 'Sweep a hobby servo between 0° and 180°',
+                description: 'Drives a hobby servo on GP0 using 50 Hz PWM and toggles it between 0° and 180° five times with 1-second pauses.',
+                hardware: ['SG90 / MG90S or similar hobby servo'],
+                wiring: ['Servo signal (orange/yellow) → GP0', 'Servo VCC (red) → external 5 V supply (NOT the Pico\'s 3V3)', 'Servo GND (brown/black) → common GND with the Pico'],
+                expected: 'The servo arm swings fully left ↔ right five times.',
+                style: 'warning'
+            },
+            neopixel: {
+                emoji: '🌈', title: 'NeoPixel LEDs',
+                summary: 'Control a WS2812/SK6812 strip',
+                description: 'Flashes the first LED of an 8-pixel NeoPixel strip on GP0 alternately red and blue, ten times.',
+                hardware: ['WS2812/SK6812 NeoPixel strip or ring (8 LEDs)', '~5 V power source sized for the strip'],
+                wiring: ['Data-in → GP0 (add a 470 Ω series resistor for long runs)', '5V → external supply (small strips can run from VBUS)', 'GND shared between the Pico and the strip'],
+                expected: 'The first NeoPixel pulses red / blue ten times.',
+                style: 'danger'
+            },
+            ultrasonic: {
+                emoji: '📏', title: 'HC-SR04 Distance Sensor',
+                summary: 'Measure distance with ultrasonic sensor',
+                description: 'Reads the distance reported by an HC-SR04 (trigger GP16, echo GP17) once per second and prints the result.',
+                hardware: ['HC-SR04 ultrasonic sensor', '2 resistors (1 kΩ + 2 kΩ) for voltage divider on ECHO'],
+                wiring: ['VCC → VBUS (5 V)', 'GND → GND', 'TRIG → GP16', 'ECHO → voltage divider → GP17 (DO NOT connect 5 V directly to the Pico!)'],
+                expected: 'The console prints "Distance: N" every second, where N is in cm.',
+                style: 'secondary'
+            },
+            traffic_light: {
+                emoji: '🚦', title: 'Traffic Light',
+                summary: 'Drive 3 LEDs in sequence',
+                description: 'Classic red → yellow → green traffic-light sequence on GP18, GP19 and GP20. Repeats five times.',
+                hardware: ['3 LEDs (red, yellow, green)', '3 current-limiting resistors (~330 Ω)'],
+                wiring: ['Red LED anode → GP18 (through resistor to GND)', 'Yellow LED anode → GP19', 'Green LED anode → GP20', 'LED cathodes → GND'],
+                expected: 'The three LEDs light up in sequence mimicking a road-traffic light.',
+                style: 'dark'
+            },
+            buzzer: {
+                emoji: '🔊', title: 'Buzzer Tones',
+                summary: 'Generate sound with a piezo buzzer',
+                description: 'Outputs three audible pulses at 1 kHz on GP0 using PWM. Swap the frequency to play different pitches.',
+                hardware: ['Active or passive piezo buzzer'],
+                wiring: ['Buzzer + → GP0', 'Buzzer − → GND'],
+                expected: 'Three short beeps at ~1 kHz.',
+                style: 'primary'
+            },
+            light_sensor: {
+                emoji: '☀️', title: 'Light Sensor',
+                summary: 'Photoresistor-triggered LED',
+                description: 'Reads an LDR on ADC0 and turns the on-board LED on when the measured brightness falls below a threshold — a mini night-light.',
+                hardware: ['Photoresistor (LDR)', '10 kΩ resistor for the voltage divider'],
+                wiring: ['LDR between 3V3(OUT) and GP26', '10 kΩ resistor between GP26 and GND (voltage divider)'],
+                expected: 'When you cover the LDR, the on-board LED turns on and the console logs the event.',
+                style: 'success'
+            },
+            morse_sos: {
+                emoji: '🆘', title: 'Morse Code SOS',
+                summary: 'Blink S-O-S distress signal',
+                description: 'Blinks the on-board LED with the international morse code "SOS" pattern (··· ––– ···) three times. A practical timing-control exercise.',
+                hardware: ['Raspberry Pi Pico / Pico 2 (no extra wiring required)'],
+                wiring: ['Uses the on-board LED (GP25)'],
+                expected: 'Three "SOS" sequences — three short blinks, three long blinks, three short blinks.',
+                style: 'danger'
+            },
+            potentiometer_led: {
+                emoji: '🎚️', title: 'Potentiometer → LED brightness',
+                summary: 'Map an ADC reading to PWM',
+                description: 'Reads a potentiometer on ADC0 and maps the value to the duty cycle of a PWM LED on GP15. Turn the knob to dim the LED — a real analog-to-PWM pipeline.',
+                hardware: ['10 kΩ potentiometer', 'LED + current-limiting resistor (~330 Ω)'],
+                wiring: ['Pot outer legs → 3V3(OUT) and GND', 'Pot wiper → GP26 (ADC0)', 'LED anode → GP15 through resistor, cathode → GND'],
+                expected: 'Turning the knob smoothly changes the LED brightness from off to full.',
+                style: 'warning'
+            },
+            neopixel_rainbow: {
+                emoji: '🎨', title: 'NeoPixel Rainbow',
+                summary: 'Cycle all pixels through the hue wheel',
+                description: 'Lights 8 NeoPixels with a rainbow gradient that rotates forever. Demonstrates loops and simple colour maths in blocks.',
+                hardware: ['8-pixel NeoPixel strip or ring', '5 V power supply'],
+                wiring: ['Data-in → GP0 (470 Ω series recommended)', '5V and GND from external supply, GND shared with Pico'],
+                expected: 'A smoothly-rotating rainbow across the 8 LEDs.',
+                style: 'danger'
+            },
+            serial_input: {
+                emoji: '⌨️', title: 'Serial Command',
+                summary: 'Type commands over USB to control the LED',
+                description: 'Waits for a line typed on the USB serial console and toggles the on-board LED. Type `on`, `off` or `toggle` and press Enter. Demonstrates using `input()` on MicroPython.',
+                hardware: ['Raspberry Pi Pico / Pico 2, connected via USB'],
+                wiring: ['No external wiring required'],
+                expected: 'The REPL prompt (e.g. in Thonny) waits for a command and the LED reacts immediately.',
+                style: 'info'
+            }
+        };
+
+        // Status toast
+        function showToast(message, type) {
+            const toast = document.getElementById('editorToast');
+            if (!toast) return;
+            toast.className = 'editor-toast alert shadow alert-' + (type || 'success');
+            toast.textContent = message;
+            // Force reflow so the transition always runs
+            void toast.offsetWidth;
+            toast.classList.add('visible');
+            clearTimeout(showToast._t);
+            showToast._t = setTimeout(() => toast.classList.remove('visible'), 2200);
+        }
+
+        // ----- Render sidebar example list + wire search -----
+        function renderExampleList() {
+            const container = document.getElementById('exampleList');
+            if (!container) return;
+            container.innerHTML = '';
+            Object.keys(exampleDetails).forEach(key => {
+                const info = exampleDetails[key];
+                const card = document.createElement('div');
+                card.className = 'example-card card mb-2';
+                card.dataset.exampleKey = key;
+                // Build a searchable string on the card for the filter
+                card.dataset.searchText = (
+                    key + ' ' + info.title + ' ' + info.summary + ' ' + info.description
+                ).toLowerCase();
+                card.innerHTML = `
+                    <div class="card-body p-2">
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-sm btn-outline-${info.style} flex-fill text-start"
+                                    onclick="loadExample('${key}')"
+                                    title="Load this example into the workspace">
+                                ${info.emoji} ${info.title}
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary example-info-btn"
+                                    onclick="showExampleDetails('${key}')"
+                                    title="Show demo details (hardware, wiring, expected behavior)">
+                                <i class="fas fa-circle-info"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted d-block mt-1">${info.summary}</small>
+                    </div>`;
+                container.appendChild(card);
+            });
+        }
+
+        function filterExamples(query) {
+            const q = (query || '').trim().toLowerCase();
+            const cards = document.querySelectorAll('#exampleList .example-card');
+            let visible = 0;
+            cards.forEach(card => {
+                const matches = !q || card.dataset.searchText.includes(q);
+                card.classList.toggle('hidden-by-search', !matches);
+                if (matches) visible++;
+            });
+            const empty = document.getElementById('exampleEmpty');
+            if (empty) empty.style.display = visible === 0 ? 'block' : 'none';
+        }
+
+        // ----- Example demo details modal -----
+        function showExampleDetails(key) {
+            const info = exampleDetails[key];
+            if (!info) return;
+            const body = document.getElementById('exampleModalBody');
+            const label = document.getElementById('exampleModalLabel');
+            label.textContent = info.emoji + ' ' + info.title;
+            body.innerHTML = `
+                <p class="lead mb-3">${info.description}</p>
+                <div class="demo-detail-section">
+                    <h6><i class="fas fa-microchip"></i> Required hardware</h6>
+                    <ul class="demo-wiring-list">
+                        ${info.hardware.map(h => '<li>' + h + '</li>').join('')}
+                    </ul>
+                </div>
+                <div class="demo-detail-section">
+                    <h6><i class="fas fa-diagram-project"></i> Wiring</h6>
+                    <ul class="demo-wiring-list">
+                        ${info.wiring.map(w => '<li>' + w + '</li>').join('')}
+                    </ul>
+                </div>
+                <div class="demo-detail-section">
+                    <h6><i class="fas fa-play-circle"></i> Expected behavior</h6>
+                    <p class="mb-0">${info.expected}</p>
+                </div>
+                <div class="alert alert-warning small mb-0">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    Always double-check voltage levels. The RP2040 GPIOs are 3.3&nbsp;V tolerant only — never connect a 5&nbsp;V signal directly.
+                </div>`;
+            const loadBtn = document.getElementById('exampleModalLoadBtn');
+            loadBtn.onclick = function() {
+                loadExample(key);
+                bootstrap.Modal.getInstance(document.getElementById('exampleModal')).hide();
+            };
+            new bootstrap.Modal(document.getElementById('exampleModal')).show();
+        }
+
+        // ----- Generate MicroPython code (with Prism highlighting + autosave) -----
         function generateCode() {
             if (typeof Blockly === 'undefined' || !Blockly.Python || !workspace) return;
-            let code = Blockly.Python.workspaceToCode(workspace);
-            // Remove trailing whitespace and empty lines
+            let code;
+            try {
+                code = Blockly.Python.workspaceToCode(workspace);
+            } catch (e) {
+                console.error('Code generation failed:', e);
+                return;
+            }
+            // Remove trailing whitespace and collapse 3+ blank lines
             code = code.replace(/[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n').trim();
-            // Set code in <code> block
             const codeElem = document.getElementById('codeOutput');
             if (codeElem) {
                 codeElem.textContent = code;
+                if (typeof Prism !== 'undefined' && Prism.highlightElement) {
+                    try { Prism.highlightElement(codeElem); } catch (_e) { /* noop */ }
+                }
             }
+            // Persist workspace to browser storage so reloads don't lose work
+            saveWorkspaceToLocalStorage();
         }
 
-        // Clear workspace
+        // ----- Clear workspace (interactive) -----
         function clearWorkspace() {
             if (!workspace) {
-                alert('Workspace not initialized yet.');
+                showToast('Workspace not initialized yet.', 'warning');
                 return;
             }
-            
-            if (confirm('Are you sure you want to clear the workspace?')) {
+            if (workspace.getAllBlocks(false).length === 0) {
+                return;
+            }
+            if (confirm('Clear all blocks from the workspace? This cannot be undone with the Undo button after you reload.')) {
                 workspace.clear();
+                generateCode();
+                showToast('Workspace cleared.', 'info');
             }
         }
 
-        // Copy code to clipboard
+        // ----- Start a new, empty project -----
+        function newProject() {
+            if (!workspace) return;
+            if (workspace.getAllBlocks(false).length > 0 &&
+                !confirm('Start a new project? The current workspace will be discarded (auto-save will be overwritten).')) {
+                return;
+            }
+            workspace.clear();
+            const name = document.getElementById('projectName');
+            if (name) name.value = 'untitled_project';
+            generateCode();
+            showToast('New project started.', 'info');
+        }
+
+        // ----- Copy code to clipboard -----
         function copyToClipboard() {
             const codeElem = document.getElementById('codeOutput');
-            let code = codeElem.innerText || codeElem.value || '';
-            if (!code) return;
-            navigator.clipboard.writeText(code);
-            const btn = document.getElementById('copyBtn');
-            if (btn) {
-                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                btn.classList.remove('btn-outline-warning');
-                btn.classList.add('btn-success');
-                setTimeout(() => {
-                    btn.innerHTML = '<i class="fas fa-copy"></i> <span class="d-none d-md-inline">Copy</span>';
-                    btn.classList.remove('btn-success');
-                    btn.classList.add('btn-outline-warning');
-                }, 1200);
+            const code = (codeElem.innerText || codeElem.textContent || '').trim();
+            if (!code) {
+                showToast('Nothing to copy — build some blocks first.', 'warning');
+                return;
+            }
+            const done = () => {
+                const btn = document.getElementById('copyBtn');
+                if (btn) {
+                    const original = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                    btn.classList.remove('btn-outline-warning');
+                    btn.classList.add('btn-success');
+                    setTimeout(() => {
+                        btn.innerHTML = original;
+                        btn.classList.remove('btn-success');
+                        btn.classList.add('btn-outline-warning');
+                    }, 1200);
+                }
+                showToast('Code copied to clipboard.', 'success');
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(code).then(done).catch(() => {
+                    // Fallback for older browsers / insecure contexts
+                    legacyCopyToClipboard(code);
+                    done();
+                });
+            } else {
+                legacyCopyToClipboard(code);
+                done();
             }
         }
 
-        // Download code as .py file
+        function legacyCopyToClipboard(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); } catch (_e) { /* noop */ }
+            document.body.removeChild(ta);
+        }
+
+        // ----- Download code as .py file, with a helpful header -----
+        function sanitizeFilename(name, ext) {
+            let base = (name || '').trim().replace(/[^a-zA-Z0-9._-]/g, '_');
+            if (!base) base = 'pico_program';
+            if (ext && !base.toLowerCase().endsWith(ext.toLowerCase())) base += ext;
+            return base;
+        }
+
         function downloadCode() {
             const code = document.getElementById('codeOutput').textContent;
             if (!code.trim()) {
-                alert('No code to download. Please create some blocks first.');
+                showToast('No code to download — build some blocks first.', 'warning');
                 return;
             }
-            
-            const blob = new Blob([code], { type: 'text/plain' });
+            const projectName = (document.getElementById('projectName').value || 'pico_program').trim();
+            const header =
+                '# ' + projectName + '\n' +
+                '# Generated by the MicroPython Generator for Raspberry Pi Pico\n' +
+                '# https://github.com/SimonWaldherr/rp2040-examples\n' +
+                '# ' + new Date().toISOString() + '\n\n';
+            const blob = new Blob([header + code + '\n'], { type: 'text/x-python' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'pico_program.py';
+            a.download = sanitizeFilename(projectName, '.py');
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            showToast('Downloaded ' + a.download, 'success');
         }
+
+        // ----- Export workspace to XML file -----
+        function workspaceToXmlString() {
+            if (!workspace || typeof Blockly === 'undefined' || !Blockly.Xml) return '';
+            const dom = Blockly.Xml.workspaceToDom(workspace);
+            return Blockly.Xml.domToPrettyText(dom);
+        }
+
+        function exportWorkspace() {
+            if (!workspace) return;
+            if (workspace.getAllBlocks(false).length === 0) {
+                showToast('Workspace is empty — nothing to export.', 'warning');
+                return;
+            }
+            const xml = workspaceToXmlString();
+            const projectName = (document.getElementById('projectName').value || 'pico_project').trim();
+            const blob = new Blob([xml], { type: 'application/xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = sanitizeFilename(projectName, '.xml');
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Project exported as ' + a.download, 'success');
+        }
+
+        // ----- Import workspace from XML file -----
+        function importWorkspace(event) {
+            const file = event && event.target && event.target.files && event.target.files[0];
+            // Reset the input so importing the same file twice still fires the change event
+            if (event && event.target) event.target.value = '';
+            if (!file) return;
+            if (file.size > 2 * 1024 * 1024) {
+                showToast('File is too large (>2 MB). Aborting import.', 'danger');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                try {
+                    const dom = Blockly.utils.xml.textToDom(text);
+                    if (workspace.getAllBlocks(false).length > 0 &&
+                        !confirm('Importing will replace the current workspace. Continue?')) {
+                        return;
+                    }
+                    workspace.clear();
+                    Blockly.Xml.domToWorkspace(dom, workspace);
+                    // Derive project name from the filename
+                    const pn = document.getElementById('projectName');
+                    if (pn) pn.value = file.name.replace(/\.xml$/i, '');
+                    generateCode();
+                    showToast('Imported ' + file.name, 'success');
+                } catch (err) {
+                    console.error('Import failed:', err);
+                    showToast('Failed to import: ' + err.message, 'danger');
+                }
+            };
+            reader.onerror = function() {
+                showToast('Failed to read file.', 'danger');
+            };
+            reader.readAsText(file);
+        }
+
+        // ----- LocalStorage auto-save / restore -----
+        const STORAGE_KEY = 'pico_blockly_workspace_v1';
+        const STORAGE_NAME_KEY = 'pico_blockly_projectname_v1';
+
+        function saveWorkspaceToLocalStorage() {
+            try {
+                if (!workspace) return;
+                localStorage.setItem(STORAGE_KEY, workspaceToXmlString());
+                const name = document.getElementById('projectName');
+                if (name) localStorage.setItem(STORAGE_NAME_KEY, name.value || '');
+                const indicator = document.getElementById('autosaveIndicator');
+                if (indicator) {
+                    indicator.innerHTML = '<i class="fas fa-cloud"></i> saved ' +
+                        new Date().toLocaleTimeString();
+                }
+            } catch (_e) {
+                // Storage disabled or quota exceeded — fail silently
+            }
+        }
+
+        function restoreWorkspaceFromLocalStorage() {
+            try {
+                const xml = localStorage.getItem(STORAGE_KEY);
+                if (xml && xml.trim()) {
+                    const dom = Blockly.utils.xml.textToDom(xml);
+                    Blockly.Xml.domToWorkspace(dom, workspace);
+                }
+                const name = localStorage.getItem(STORAGE_NAME_KEY);
+                if (name) {
+                    const nameEl = document.getElementById('projectName');
+                    if (nameEl) nameEl.value = name;
+                }
+                return !!xml;
+            } catch (err) {
+                console.warn('Failed to restore saved workspace:', err);
+                return false;
+            }
+        }
+
+        // ----- Undo / Redo -----
+        function undoWorkspace() { if (workspace) workspace.undo(false); }
+        function redoWorkspace() { if (workspace) workspace.undo(true); }
 
         // Load example programs
         function loadExample(type) {
             if (!workspace) {
-                alert('Workspace not initialized yet.');
+                showToast('Workspace not initialized yet.', 'warning');
                 return;
             }
-            
-            clearWorkspace();
-            
+            // If there are existing blocks, confirm replacement (but not during
+            // first-load for a fresh workspace or when called from the modal)
+            if (workspace.getAllBlocks(false).length > 0) {
+                if (!confirm('Loading this example will replace your current workspace. Continue?')) {
+                    return;
+                }
+            }
+            workspace.clear();
+            // Auto-name the project based on the example
+            const info = exampleDetails[type];
+            if (info) {
+                const pn = document.getElementById('projectName');
+                if (pn) pn.value = type;
+            }
+
             let xml;
             switch(type) {
                 case 'blink':
@@ -2068,15 +2724,217 @@
                         </block>
                     </xml>`;
                     break;
+                case 'morse_sos':
+                    xml = `<xml>
+                        <block type="pico_import" x="20" y="20">
+                            <next>
+                                <block type="controls_repeat_ext">
+                                    <value name="TIMES">
+                                        <block type="math_number"><field name="NUM">3</field></block>
+                                    </value>
+                                    <statement name="DO">
+                                        <block type="pico_led_blink">
+                                            <value name="TIMES"><block type="math_number"><field name="NUM">3</field></block></value>
+                                            <value name="DELAY"><block type="math_number"><field name="NUM">0.2</field></block></value>
+                                            <next>
+                                                <block type="pico_delay">
+                                                    <value name="TIME"><block type="math_number"><field name="NUM">0.3</field></block></value>
+                                                    <next>
+                                                        <block type="pico_led_blink">
+                                                            <value name="TIMES"><block type="math_number"><field name="NUM">3</field></block></value>
+                                                            <value name="DELAY"><block type="math_number"><field name="NUM">0.6</field></block></value>
+                                                            <next>
+                                                                <block type="pico_delay">
+                                                                    <value name="TIME"><block type="math_number"><field name="NUM">0.3</field></block></value>
+                                                                    <next>
+                                                                        <block type="pico_led_blink">
+                                                                            <value name="TIMES"><block type="math_number"><field name="NUM">3</field></block></value>
+                                                                            <value name="DELAY"><block type="math_number"><field name="NUM">0.2</field></block></value>
+                                                                            <next>
+                                                                                <block type="pico_delay">
+                                                                                    <value name="TIME"><block type="math_number"><field name="NUM">1</field></block></value>
+                                                                                </block>
+                                                                            </next>
+                                                                        </block>
+                                                                    </next>
+                                                                </block>
+                                                            </next>
+                                                        </block>
+                                                    </next>
+                                                </block>
+                                            </next>
+                                        </block>
+                                    </statement>
+                                </block>
+                            </next>
+                        </block>
+                    </xml>`;
+                    break;
+
+                case 'potentiometer_led':
+                    xml = `<xml>
+                        <block type="pico_import" x="20" y="20">
+                            <next>
+                                <block type="pico_pwm_setup">
+                                    <field name="PIN">15</field>
+                                    <field name="FREQ">1000</field>
+                                    <field name="VAR">led_pwm</field>
+                                    <next>
+                                        <block type="controls_whileUntil">
+                                            <field name="MODE">WHILE</field>
+                                            <value name="BOOL"><block type="logic_boolean"><field name="BOOL">TRUE</field></block></value>
+                                            <statement name="DO">
+                                                <block type="variables_set">
+                                                    <field name="VAR">brightness</field>
+                                                    <value name="VALUE">
+                                                        <block type="math_arithmetic">
+                                                            <field name="OP">DIVIDE</field>
+                                                            <value name="A">
+                                                                <shadow type="math_number"><field name="NUM">0</field></shadow>
+                                                                <block type="pico_adc_read"><field name="PIN">0</field></block>
+                                                            </value>
+                                                            <value name="B">
+                                                                <shadow type="math_number"><field name="NUM">655.35</field></shadow>
+                                                            </value>
+                                                        </block>
+                                                    </value>
+                                                    <next>
+                                                        <block type="pico_pwm_write">
+                                                            <field name="PWM">led_pwm</field>
+                                                            <value name="VALUE">
+                                                                <block type="variables_get"><field name="VAR">brightness</field></block>
+                                                            </value>
+                                                            <next>
+                                                                <block type="pico_delay">
+                                                                    <field name="UNIT">time.sleep_ms</field>
+                                                                    <value name="TIME"><block type="math_number"><field name="NUM">20</field></block></value>
+                                                                </block>
+                                                            </next>
+                                                        </block>
+                                                    </next>
+                                                </block>
+                                            </statement>
+                                        </block>
+                                    </next>
+                                </block>
+                            </next>
+                        </block>
+                    </xml>`;
+                    break;
+
+                case 'neopixel_rainbow':
+                    xml = `<xml>
+                        <block type="pico_import" x="20" y="20">
+                            <next>
+                                <block type="pico_neopixel_setup">
+                                    <field name="PIN">0</field>
+                                    <field name="COUNT">8</field>
+                                    <field name="VAR">pixels</field>
+                                    <next>
+                                        <block type="variables_set">
+                                            <field name="VAR">offset</field>
+                                            <value name="VALUE"><block type="math_number"><field name="NUM">0</field></block></value>
+                                            <next>
+                                                <block type="controls_whileUntil">
+                                                    <field name="MODE">WHILE</field>
+                                                    <value name="BOOL"><block type="logic_boolean"><field name="BOOL">TRUE</field></block></value>
+                                                    <statement name="DO">
+                                                        <block type="controls_for">
+                                                            <field name="VAR">i</field>
+                                                            <value name="FROM"><block type="math_number"><field name="NUM">0</field></block></value>
+                                                            <value name="TO"><block type="math_number"><field name="NUM">7</field></block></value>
+                                                            <value name="BY"><block type="math_number"><field name="NUM">1</field></block></value>
+                                                            <statement name="DO">
+                                                                <block type="pico_neopixel_color">
+                                                                    <field name="PIXELS">pixels</field>
+                                                                    <value name="INDEX"><block type="variables_get"><field name="VAR">i</field></block></value>
+                                                                    <value name="RED"><block type="math_number"><field name="NUM">128</field></block></value>
+                                                                    <value name="GREEN"><block type="math_number"><field name="NUM">64</field></block></value>
+                                                                    <value name="BLUE"><block type="math_number"><field name="NUM">32</field></block></value>
+                                                                </block>
+                                                            </statement>
+                                                            <next>
+                                                                <block type="pico_delay">
+                                                                    <value name="TIME"><block type="math_number"><field name="NUM">0.1</field></block></value>
+                                                                </block>
+                                                            </next>
+                                                        </block>
+                                                    </statement>
+                                                </block>
+                                            </next>
+                                        </block>
+                                    </next>
+                                </block>
+                            </next>
+                        </block>
+                    </xml>`;
+                    break;
+
+                case 'serial_input':
+                    xml = `<xml>
+                        <block type="pico_import" x="20" y="20">
+                            <next>
+                                <block type="controls_whileUntil">
+                                    <field name="MODE">WHILE</field>
+                                    <value name="BOOL"><block type="logic_boolean"><field name="BOOL">TRUE</field></block></value>
+                                    <statement name="DO">
+                                        <block type="variables_set">
+                                            <field name="VAR">cmd</field>
+                                            <value name="VALUE">
+                                                <block type="text_prompt_ext">
+                                                    <mutation type="TEXT"></mutation>
+                                                    <field name="TYPE">TEXT</field>
+                                                    <value name="TEXT"><shadow type="text"><field name="TEXT">Command (on/off/toggle):</field></shadow></value>
+                                                </block>
+                                            </value>
+                                            <next>
+                                                <block type="controls_if">
+                                                    <mutation elseif="2"></mutation>
+                                                    <value name="IF0">
+                                                        <block type="logic_compare">
+                                                            <field name="OP">EQ</field>
+                                                            <value name="A"><block type="variables_get"><field name="VAR">cmd</field></block></value>
+                                                            <value name="B"><block type="text"><field name="TEXT">on</field></block></value>
+                                                        </block>
+                                                    </value>
+                                                    <statement name="DO0"><block type="pico_led_on"></block></statement>
+                                                    <value name="IF1">
+                                                        <block type="logic_compare">
+                                                            <field name="OP">EQ</field>
+                                                            <value name="A"><block type="variables_get"><field name="VAR">cmd</field></block></value>
+                                                            <value name="B"><block type="text"><field name="TEXT">off</field></block></value>
+                                                        </block>
+                                                    </value>
+                                                    <statement name="DO1"><block type="pico_led_off"></block></statement>
+                                                    <value name="IF2">
+                                                        <block type="logic_compare">
+                                                            <field name="OP">EQ</field>
+                                                            <value name="A"><block type="variables_get"><field name="VAR">cmd</field></block></value>
+                                                            <value name="B"><block type="text"><field name="TEXT">toggle</field></block></value>
+                                                        </block>
+                                                    </value>
+                                                    <statement name="DO2"><block type="pico_led_toggle"></block></statement>
+                                                </block>
+                                            </next>
+                                        </block>
+                                    </statement>
+                                </block>
+                            </next>
+                        </block>
+                    </xml>`;
+                    break;
             }
             
             if (xml && typeof Blockly !== 'undefined' && Blockly.Xml) {
                 try {
                     Blockly.Xml.domToWorkspace(Blockly.utils.xml.textToDom(xml), workspace);
                     generateCode();
+                    if (info) {
+                        showToast('Loaded example: ' + info.title, 'success');
+                    }
                 } catch (error) {
                     console.error('Error loading example:', error);
-                    alert('Error loading example. Please try again.');
+                    showToast('Error loading example: ' + error.message, 'danger');
                 }
             }
         }
@@ -2099,24 +2957,98 @@
                 defineCustomBlocks();
                 initBlockly();
                 initPinSelector();
-                
+
+                // Render sidebar example list from exampleDetails registry and wire the search box
+                renderExampleList();
+                const searchInput = document.getElementById('exampleSearch');
+                if (searchInput) {
+                    searchInput.addEventListener('input', function() {
+                        filterExamples(this.value);
+                    });
+                }
+
+                // Project name: persist changes to localStorage
+                const projectNameInput = document.getElementById('projectName');
+                if (projectNameInput) {
+                    projectNameInput.addEventListener('input', () => {
+                        try {
+                            localStorage.setItem(STORAGE_NAME_KEY, projectNameInput.value || '');
+                        } catch (_e) { /* noop */ }
+                    });
+                    // Prevent Enter from submitting an imaginary form
+                    projectNameInput.addEventListener('keydown', e => {
+                        if (e.key === 'Enter') e.preventDefault();
+                    });
+                }
+
+                // Restore any previously auto-saved workspace BEFORE we start showing code
+                const restored = restoreWorkspaceFromLocalStorage();
+
                 // Update status to ready
                 statusIndicator.innerHTML = '<i class="fas fa-check-circle me-1"></i> Ready';
                 statusIndicator.className = 'badge bg-success px-3 py-2';
-                
-                // Show welcome message
+
+                // Either render the restored workspace or show the welcome message
                 const codeOutputElement = document.getElementById('codeOutput');
-                if (codeOutputElement) {
-                    codeOutputElement.textContent = 
-                        '# Welcome to MicroPython Generator for Raspberry Pi Pico!\n' +
-                        '# 1. Drag blocks from the toolbox on the left\n' +
-                        '# 2. Connect them together to create your program\n' +
-                        '# 3. The MicroPython code will be generated automatically\n' +
-                        '# 4. Copy the code and upload it to your Pico\n' +
+                if (restored) {
+                    generateCode();
+                    showToast('Restored your last saved workspace.', 'info');
+                } else if (codeOutputElement) {
+                    codeOutputElement.textContent =
+                        '# Welcome to the MicroPython Generator for Raspberry Pi Pico!\n' +
                         '#\n' +
-                        '# Try the example buttons to get started!\n' +
-                        '# Click on pins in the diagram to see their capabilities!\n';
+                        '# 1. Open a category in the Blockly toolbox and drag blocks onto the canvas\n' +
+                        '# 2. Snap blocks together to build your program\n' +
+                        '# 3. The MicroPython code will appear here, syntax-highlighted\n' +
+                        '# 4. Copy it into Thonny, or use "Download .py" and upload to your Pico\n' +
+                        '#\n' +
+                        '# Tip: click any example in the sidebar to load ready-made blocks,\n' +
+                        '#      and the (i) button next to it for wiring and hardware details.\n' +
+                        '#\n' +
+                        '# Your work is auto-saved in this browser, so refreshing is safe.\n';
                 }
+
+                // Global keyboard shortcuts — but never steal input from text fields
+                document.addEventListener('keydown', function(e) {
+                    const tag = (e.target && e.target.tagName) || '';
+                    const isEditable = e.target && (
+                        e.target.isContentEditable ||
+                        tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+                    );
+                    const ctrl = e.ctrlKey || e.metaKey;
+
+                    // "?" — open shortcuts modal (only when not typing)
+                    if (!isEditable && !ctrl && !e.altKey && e.key === '?') {
+                        const modal = document.getElementById('shortcutsModal');
+                        if (modal) new bootstrap.Modal(modal).show();
+                        e.preventDefault();
+                        return;
+                    }
+
+                    if (!ctrl) return;
+                    const k = e.key.toLowerCase();
+
+                    // Ctrl+S — export workspace
+                    if (k === 's' && !e.shiftKey) {
+                        e.preventDefault();
+                        exportWorkspace();
+                    // Ctrl+O — import workspace
+                    } else if (k === 'o' && !e.shiftKey) {
+                        e.preventDefault();
+                        document.getElementById('importFile').click();
+                    // Ctrl+D — download .py
+                    } else if (k === 'd' && !e.shiftKey) {
+                        e.preventDefault();
+                        downloadCode();
+                    // Ctrl+Enter — regenerate + copy
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        generateCode();
+                        copyToClipboard();
+                    }
+                    // (Ctrl+Z / Ctrl+Y are already handled natively by Blockly when
+                    // the workspace has focus, so we do not override them here.)
+                });
             } catch (error) {
                 console.error('Initialization error:', error);
                 statusIndicator.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> Initialization failed';

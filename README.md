@@ -2,7 +2,10 @@
 
 [![DOI](https://zenodo.org/badge/789093283.svg)](https://zenodo.org/doi/10.5281/zenodo.13647552)  
 
-test the new [Blockly Micropython Editor](https://simonwaldherr.github.io/rp2040-examples/)!  
+test the new [Blockly MicroPython Editor](https://simonwaldherr.github.io/rp2040-examples/)!
+It now supports importing/exporting projects as `.xml`, auto-saves your workspace in the browser,
+ships with syntax-highlighted Python output, tooltips on every block and a dozen example demos
+with wiring diagrams.
 
 [![Watch the video](https://img.youtube.com/vi/QYv2qZ7QwnE/maxresdefault.jpg)](https://youtu.be/QYv2qZ7QwnE)
 
